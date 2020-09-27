@@ -174,12 +174,14 @@ class MainWindow(QMainWindow):
 
     def mulaiAkuisisiCitra(self):
         global usedDevice
-        if(self.selectDeviceRadioBtn2.isChecked()):
-            device = self.formAkuisisiIP.text()
-            usedDevice = "http://"+device+"/video?type=some.mjpeg"
-            print('DEVICE USED ISSSSSS : ', usedDevice)
         self.videoThread.terminate()
-        self.videoThread.start()
+        if(self.selectDeviceRadioBtn2.isChecked() or self.selectDeviceRadioBtn1.isChecked()):
+            if(self.selectDeviceRadioBtn2.isChecked()):
+                device = self.formAkuisisiIP.text()
+                usedDevice = "http://"+device+"/video?type=some.mjpeg"
+            self.videoThread.start()
+        else:
+            self.dialog_critical("Silahkan pilih opsi perangkat akuisisi citra !")
 
     def mulaiAmbilGambar(self):
         self.videoThread.terminate()
@@ -252,7 +254,6 @@ class MainWindow(QMainWindow):
             self.dialog_critical("Tidak ada citra akuisisi yang dapat disimpan !")
 
     def file_saveas(self):
-        print('TRYING TO SAVE AS')
         path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Images (*.bmp *.jpg);;All files (*.*)")
         if not path:
             # If dialog is cancelled, will return ''
