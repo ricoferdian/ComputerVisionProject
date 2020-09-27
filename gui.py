@@ -2,7 +2,6 @@
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5.QtMultimedia import *
 
 #LIBRARY ESENSIAL
 import sys
@@ -11,54 +10,29 @@ import cv2
 #LIBRARY CUSTOM
 import utils
 
-#VARIABEL GLOBAL
-global isAkuisisi
-global isTakingPicture
-global usedDevice
-global changeDevice
-
-usedDevice = 0
-isAkuisisi = False
-changeDevice = False
-isTakingPicture = False
-
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
     takePicture = pyqtSignal(QImage)
     def run(self):
         print('INSIDE THREAD')
-        global isAkuisisi
-        global isTakingPicture
         global usedDevice
-        global changeDevice
+        global isTakingImage
         video_capture = cv2.VideoCapture(usedDevice)
         while True:
-            if(changeDevice):
-                print('DEVICE CHANGED')
-                try:
-                    video_capture = cv2.VideoCapture(usedDevice)
-                    changeDevice = False
-                    isAkuisisi = True
-                except cv2.error as e:
-                    isAkuisisi = False
-                    print('GAGAL MENGAMBIL GAMBAR DARI ',usedDevice)
-                except:
-                    isAkuisisi = False
-                    print('TERJADI KEGAGALAN')
-            elif(isAkuisisi):
-                retAkuisisi, citraAkuisisi = video_capture.read()
-                if retAkuisisi:
-                    print('INSIDE THREAD LOOP. CITRA AKUISISI : ',citraAkuisisi)
-                    rgbImage = cv2.cvtColor(citraAkuisisi, cv2.COLOR_BGR2RGB)
-                    print('CONVERSION SUCCESS')
-                    h, w, ch = rgbImage.shape
-                    bytesPerLine = ch * w
-                    convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
-                    p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
-                    self.changePixmap.emit(p)
-                    if(isTakingPicture):
-                        print('IM TAKING PICTURE')
-                        isTakingPicture = False
+            retAkuisisi, citraAkuisisi = video_capture.read()
+            if retAkuisisi:
+                print('INSIDE THREAD LOOP. CITRA AKUISISI : ',citraAkuisisi)
+                rgbImage = cv2.cvtColor(citraAkuisisi, cv2.COLOR_BGR2RGB)
+                print('CONVERSION SUCCESS')
+                h, w, ch = rgbImage.shape
+                bytesPerLine = ch * w
+                convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
+                p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
+                self.changePixmap.emit(p)
+                if(isTakingImage):
+                    print('IM TAKING PICTURE')
+                    isTakingImage = False
+                    break
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -67,111 +41,118 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(QImage)
     def takeVideo(self, image):
-        self.videoLabel.setPixmap(QPixmap.fromImage(image))
+        self.akuisisiImage.setPixmap(QPixmap.fromImage(image))
 
     @pyqtSlot(QImage)
     def takePicture(self, image):
         self.pictureLabel.setPixmap(QPixmap.fromImage(image))
 
     def initUiThread(self):
-        print('running thread')
-
-        global citraAkuisisi
-        global isAkuisisi
-
-        isAkuisisi = False
-
         #VARIABEL YANG DIBUTUHKAN UNTUK AKUISISI : KAMERA DEVICES
         retrieved_devices = utils.returnCameraIndexes()
 
-        # super(MainWindow, self).__init__(*args, **kwargs)
         self._want_to_close = False
 
         self.citraGroup = QGroupBox("Citra Didapatkan")
 
         #LAYOUT UTAMA VERTIKAL
-        mainlayout = QVBoxLayout()
+        mainlayout = QHBoxLayout()
 
-        #MAIN LAYOUT TERDAPAT 2 BARIS LAYOUT HORIZONTAL
-        hlayout_t = QHBoxLayout()
-        hlayout_b = QHBoxLayout()
+        #MAIN LAYOUT TERDAPAT 3 KOLOM
+        columnLeft = QVBoxLayout()
+        columnCenter = QVBoxLayout()
+        columnRight = QVBoxLayout()
 
-        #SUB LAYOUT BARIS HORIZONTAL PERTAMA
-        vlayout_h_t_1 = QVBoxLayout()
-        vlayout_h_t_2 = QVBoxLayout()
+        #SUB LAYOUT COLUMN LEFT
+        columnLeftRow1 = QHBoxLayout()
+        columnLeftRow2 = QHBoxLayout()
+
+        #SUB LAYOUT COLUMN CENTER
+        columnCenterRow1 = QHBoxLayout()
+        columnCenterRow2 = QHBoxLayout()
+
+        #SUB LAYOUT COLUMN RIGHT
+        #BELUM DIBUAT. TUNGGU SAMPE DIMINTA BUAT FEATURE EXTRACTION
 
 
-        #Menu untuk layout baris pertama, kolom pertama
+        #ISI DARI SUB LAYOUT COLUMN LEFT ROW 1 : VIDEO ATAU GAMBAR AKUISISI
+        #LANGSUNG AJA ISIIN GAMBAR AKUISISINYA
+        akuisisiImageGroup = QGroupBox()
+        self.akuisisiImage = QLabel(self)
+        columnLeftRow1.addWidget(self.akuisisiImage)
+        #GABUNGKAN LAYOUT JIKA SEMUA WIDGET SUDAH TERDEFINISI
+        akuisisiImageGroup.setLayout(columnLeftRow1)
 
-        #Fitur pertama, pilih dari mana mau akuisisi
-        #Form pilih kamera usb
-        vlayout_labelAkuisisiGroup = QVBoxLayout()
-        vlayout_OptionAkuisisiGroup = QVBoxLayout()
-        vlayout_ActionAkuisisiGroup = QVBoxLayout()
-        layoutOptionsFormAkuisisiGroup = QHBoxLayout()
+        #ISI DARI SUB LAYOUT COLUMN LEFT ROW 2 : MENU AKUISISI
+        columnLeftRow2Col1 = QVBoxLayout()
+        columnLeftRow2Col2 = QVBoxLayout()
 
-        akuisisiGroup = QGroupBox("Opsi Akuisisi Citra")
-        vakuisisiLayout = QVBoxLayout()
+        #ISI DARI SUB SUB LAYOUT COLUMN LEFT ROW 2 COL 1 : MENU AKUISISI DARI DEVICE
+        columnLeftRow2Col1Row1 = QHBoxLayout()
 
-        labelFormAkuisisiCombo = QLabel("INTERNAL CAMERA")
+        #SUB NYA : COLUMN 1 -> RADIO BUTTON MEMILIH DEVICE
+        columnLeftRow2Col1Row1Col1 = QVBoxLayout()
+        #radio button untuk milih opsi akuisisi dari internal device
+        self.selectDeviceRadioBtn1 = QRadioButton()
+        self.selectDeviceRadioBtn1.toggled.connect(self.changeDeviceToInternal)
+        #radio button untuk milih opsi akuisisi dari IP
+        self.selectDeviceRadioBtn2 = QRadioButton()
+        self.selectDeviceRadioBtn2.toggled.connect(self.changeDeviceToIp)
+        #GABUNGKAN
+        columnLeftRow2Col1Row1Col1.addWidget(self.selectDeviceRadioBtn1)
+        columnLeftRow2Col1Row1Col1.addWidget(self.selectDeviceRadioBtn2)
+
+        #SUB NYA : COLUMN 2 -> COMBOBOX DAN FORM INPUT IP
+        columnLeftRow2Col1Row1Col2 = QVBoxLayout()
+        #Combobox untuk pilih device
         self.akuisisiCombo = QComboBox()
-        vlayout_labelAkuisisiGroup.addWidget(labelFormAkuisisiCombo)
-        vlayout_OptionAkuisisiGroup.addWidget(self.akuisisiCombo)
-        #SET VALUE COMBOBOX DENGAN DEVICE INTERNAL
-        for i in retrieved_devices:
+        #SET VALUE COMBOBOX DENGAN DEVICE INTERNAL YANG SUDAH DIBACA
+        for i in range(3):
             self.currentDevice = 0
             self.akuisisiCombo.addItem("KAMERA"+str(i+1))
         #Listener Combobox
         self.akuisisiCombo.currentIndexChanged.connect(self.akuisisiSelectionChange)
-
-        #Form insert alamat IP
-        labelFormAkuisisiIP = QLabel("IP CAMERA")
+        #Form untuk insert alamat IP
         self.formAkuisisiIP = QLineEdit("192.168.1.2:8080")
-        vlayout_labelAkuisisiGroup.addWidget(labelFormAkuisisiIP)
-        vlayout_OptionAkuisisiGroup.addWidget(self.formAkuisisiIP)
+        #GABUNGKAN
+        columnLeftRow2Col1Row1Col2.addWidget(self.akuisisiCombo)
+        columnLeftRow2Col1Row1Col2.addWidget(self.formAkuisisiIP)
 
-        #BUTTON MEMILIH OPSI
-        confirmAkuisisiIpButton = QPushButton("GUNAKAN")
-        confirmAkuisisiIpButton.clicked.connect(self.changeDeviceToInternal)
-        vlayout_ActionAkuisisiGroup.addWidget(confirmAkuisisiIpButton)
+        #SUB NYA : COLUMN 3 -> BUTTON AKUISISI DAN AMBIL GAMBAR
+        columnLeftRow2Col1Row1Col3 = QVBoxLayout()
+        #BUTTON BUTTON
+        self.mulaiAkuisisiButton = QPushButton("MULAI AKUISISI")
+        self.mulaiAkuisisiButton.clicked.connect(self.mulaiAkuisisiCitra)
+        self.akuisisiGambarButton = QPushButton("AMBIL GAMBAR")
+        self.akuisisiGambarButton.clicked.connect(self.mulaiAmbilGambar)
+        #GABUNGKAN
+        columnLeftRow2Col1Row1Col3.addWidget(self.mulaiAkuisisiButton)
+        columnLeftRow2Col1Row1Col3.addWidget(self.akuisisiGambarButton)
+        #GABUNGKAN DENGAN PARENT
+        columnLeftRow2Col1Row1.addLayout(columnLeftRow2Col1Row1Col1)
+        columnLeftRow2Col1Row1.addLayout(columnLeftRow2Col1Row1Col2)
+        columnLeftRow2Col1Row1.addLayout(columnLeftRow2Col1Row1Col3)
+        columnLeftRow2Col1.addLayout(columnLeftRow2Col1Row1)
 
-        confirmAkuisisiCameraButton = QPushButton("GUNAKAN")
-        confirmAkuisisiCameraButton.clicked.connect(self.changeDeviceToIp)
-        vlayout_ActionAkuisisiGroup.addWidget(confirmAkuisisiCameraButton)
+        #ISI DARI SUB SUB LAYOUT COLUMN LEFT ROW 2 COL 2 : MENU AKUISISI DARI GAMBAR TERAKUISIS
+        #LANGSUNG AJA ISIIN BUTTON, KARENA LAYOUT SUDAH VERTIKAL DAN HANYA BUTUH 1 COLUMN
+        self.pilihGambarAkuisisiButton = QPushButton("PILIH GAMBAR")
+        self.simpanGambarAkuisisiButton = QPushButton("SIMPAN GAMBAR")
+        #GABUNGKAN
+        columnLeftRow2Col2.addWidget(self.pilihGambarAkuisisiButton)
+        columnLeftRow2Col2.addWidget(self.simpanGambarAkuisisiButton)
+        #GABUNGKAN DENGAN PARENT
+        columnLeftRow2.addLayout(columnLeftRow2Col1)
+        columnLeftRow2.addLayout(columnLeftRow2Col2)
+        columnLeft.addLayout(columnLeftRow1)
+        columnLeft.addLayout(columnLeftRow2)
 
-        layoutOptionsFormAkuisisiGroup.addLayout(vlayout_labelAkuisisiGroup)
-        layoutOptionsFormAkuisisiGroup.addLayout(vlayout_OptionAkuisisiGroup)
-        layoutOptionsFormAkuisisiGroup.addLayout(vlayout_ActionAkuisisiGroup)
+        #LAYOUT-LAYOUT LAINNYA DISINI
 
-        #GABUNGIN LAYOUT
-        vakuisisiLayout.addLayout(layoutOptionsFormAkuisisiGroup)
-        akuisisiGroup.setLayout(vakuisisiLayout)
-
-        #Fitur terakhir, keluar aplikasi
-        menuGroup = QGroupBox("Opsi menu")
-        vmenuLayout = QVBoxLayout()
-
-        exitButton = QPushButton("Keluar")
-        #LISTENER EXIT BUTTON
-        exitButton.clicked.connect(self.exitConfirmation)
-
-        vmenuLayout.addWidget(exitButton)
-        menuGroup.setLayout(vmenuLayout)
-
-        #SUSUN WIDGET-WIDGET DAN SUBLAYOUT BERURUTAN
-
-        vlayout_h_t_1.addWidget(akuisisiGroup)
-        vlayout_h_t_1.addWidget(akuisisiGroup)
-        vlayout_h_t_1.addWidget(menuGroup)
-
-        hlayout_t.addLayout(vlayout_h_t_1)
-
-        fixedfont = QFontDatabase.systemFont(QFontDatabase.FixedFont)
-        fixedfont.setPointSize(12)
-        self.path = None
-
-        mainlayout.addLayout(hlayout_t)
-        mainlayout.addLayout(hlayout_b)
+        #JIKA SEMUA SUDAH DIDEFINISIKAN, GABUNGKAN DENGAN MAIN LAYOUT
+        mainlayout.addLayout(columnLeft)
+        mainlayout.addLayout(columnCenter)
+        mainlayout.addLayout(columnRight)
 
         container = QWidget()
         container.setLayout(mainlayout)
@@ -180,45 +161,47 @@ class MainWindow(QMainWindow):
         self.status = QStatusBar()
         self.setStatusBar(self.status)
 
+        fixedfont = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        fixedfont.setPointSize(12)
+        self.path = None
+
         self.update_title()
 
-        self.videoLabel = QLabel(self)
-        vlayout_h_t_2.addWidget(self.videoLabel)
-        hlayout_t.addLayout(vlayout_h_t_2)
-
+        #INIT THREAD UNTUK AKUISISI CITRA
         self.videoThread = Thread(self)
         self.videoThread.changePixmap.connect(self.takeVideo)
-        self.videoThread.start()
+
         self.show()
 
     def akuisisiSelectionChange(self,i):
+        global usedDevice
         self.currentDevice = i
         print('SELECTION CHANGED TO : ',self.currentDevice)
+        if(self.selectDeviceRadioBtn1.isChecked()):
+            usedDevice = self.currentDevice
+            print('DEVICE USED IS : ',usedDevice)
+
+    def mulaiAkuisisiCitra(self):
+        global isTakingImage
+        isTakingImage = False
+        self.videoThread.start()
+
+    def mulaiAmbilGambar(self):
+        global isTakingImage
+        isTakingImage = True
 
     def changeDeviceToInternal(self):
-        global isAkuisisi
         global usedDevice
-        global changeDevice
-        usedDevice = self.currentDevice
-        print('DEVICE USED IS : ',usedDevice)
-        changeDevice = True
-        isAkuisisi = False
-        self.videoThread.terminate()
-        self.videoThread.changePixmap.connect(self.takeVideo)
-        self.videoThread.start()
+        if(self.selectDeviceRadioBtn1.isChecked()):
+            usedDevice = self.currentDevice
+            print('DEVICE USED IS : ',usedDevice)
 
     def changeDeviceToIp(self):
-        global isAkuisisi
         global usedDevice
-        global changeDevice
-        device = self.formAkuisisiIP.text()
-        usedDevice = "http://"+device+"/video?type=some.mjpeg"
-        print('DEVICE USED IS : ', usedDevice)
-        changeDevice = True
-        isAkuisisi = False
-        self.videoThread.terminate()
-        self.videoThread.changePixmap.connect(self.takeVideo)
-        self.videoThread.start()
+        if(self.selectDeviceRadioBtn2.isChecked()):
+            device = self.formAkuisisiIP.text()
+            usedDevice = "http://"+device+"/video?type=some.mjpeg"
+            print('DEVICE USED IS : ', usedDevice)
 
     def exitConfirmation(self):
         dlg = QMessageBox()
