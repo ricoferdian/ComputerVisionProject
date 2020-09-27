@@ -4,16 +4,30 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 #LIBRARY ESENSIAL
+import numpy as np
+import os
 import sys
+import logging
+import threading
 import cv2
 
 #LIBRARY CUSTOM
 import utils
 
+<<<<<<< HEAD
+=======
+global isAkuisisi
+global usedDevice
+global changeDevice
+
+URL = "http://192.168.1.18:8080/video?type=some.mjpeg"
+>>>>>>> parent of 02d5a25... Fix bug freeze saat IP tidak ditemukan
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
-    takePicture = pyqtSignal(QImage)
+    print('INSIDE THREAD')
+
     def run(self):
+<<<<<<< HEAD
         print('INSIDE THREAD')
         global usedDevice
         global isTakingImage
@@ -33,6 +47,32 @@ class Thread(QThread):
                     print('IM TAKING PICTURE')
                     isTakingImage = False
                     break
+=======
+        global usedDevice
+        global isAkuisisi
+        global changeDevice
+        usedDevice = 0
+        isAkuisisi = False
+        changeDevice = False
+        video_capture = cv2.VideoCapture(usedDevice)
+        while True:
+            if(changeDevice):
+                print('DEVICE CHANGED')
+                video_capture = cv2.VideoCapture(usedDevice)
+                changeDevice = False
+                isAkuisisi = True
+            elif(isAkuisisi):
+                retAkuisisi, citraAkuisisi = video_capture.read()
+                if retAkuisisi:
+                    print('INSIDE THREAD LOOP. CITRA AKUISISI : ',citraAkuisisi)
+                    rgbImage = cv2.cvtColor(citraAkuisisi, cv2.COLOR_BGR2RGB)
+                    print('CONVERSION SUCCESS')
+                    h, w, ch = rgbImage.shape
+                    bytesPerLine = ch * w
+                    convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
+                    p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
+                    self.changePixmap.emit(p)
+>>>>>>> parent of 02d5a25... Fix bug freeze saat IP tidak ditemukan
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -40,12 +80,17 @@ class MainWindow(QMainWindow):
         self.initUiThread()
 
     @pyqtSlot(QImage)
+<<<<<<< HEAD
     def takeVideo(self, image):
         self.akuisisiImage.setPixmap(QPixmap.fromImage(image))
 
     @pyqtSlot(QImage)
     def takePicture(self, image):
         self.pictureLabel.setPixmap(QPixmap.fromImage(image))
+=======
+    def setImage(self, image):
+        self.label.setPixmap(QPixmap.fromImage(image))
+>>>>>>> parent of 02d5a25... Fix bug freeze saat IP tidak ditemukan
 
     def initUiThread(self):
         #VARIABEL YANG DIBUTUHKAN UNTUK AKUISISI : KAMERA DEVICES
@@ -114,6 +159,7 @@ class MainWindow(QMainWindow):
         self.akuisisiCombo.currentIndexChanged.connect(self.akuisisiSelectionChange)
         #Form untuk insert alamat IP
         self.formAkuisisiIP = QLineEdit("192.168.1.2:8080")
+<<<<<<< HEAD
         #GABUNGKAN
         columnLeftRow2Col1Row1Col2.addWidget(self.akuisisiCombo)
         columnLeftRow2Col1Row1Col2.addWidget(self.formAkuisisiIP)
@@ -153,6 +199,54 @@ class MainWindow(QMainWindow):
         mainlayout.addLayout(columnLeft)
         mainlayout.addLayout(columnCenter)
         mainlayout.addLayout(columnRight)
+=======
+        vlayout_labelAkuisisiGroup.addWidget(labelFormAkuisisiIP)
+        vlayout_OptionAkuisisiGroup.addWidget(self.formAkuisisiIP)
+
+        #BUTTON MEMILIH OPSI
+        confirmAkuisisiIpButton = QPushButton("USE DEVICE")
+        confirmAkuisisiIpButton.clicked.connect(self.changeDeviceToInternal)
+        vlayout_ActionAkuisisiGroup.addWidget(confirmAkuisisiIpButton)
+
+        confirmAkuisisiCameraButton = QPushButton("USE IP CAM")
+        confirmAkuisisiCameraButton.clicked.connect(self.changeDeviceToIp)
+        vlayout_ActionAkuisisiGroup.addWidget(confirmAkuisisiCameraButton)
+
+        layoutOptionsFormAkuisisiGroup.addLayout(vlayout_labelAkuisisiGroup)
+        layoutOptionsFormAkuisisiGroup.addLayout(vlayout_OptionAkuisisiGroup)
+        layoutOptionsFormAkuisisiGroup.addLayout(vlayout_ActionAkuisisiGroup)
+
+
+        #GABUNGIN LAYOUT
+        vakuisisiLayout.addLayout(layoutOptionsFormAkuisisiGroup)
+        akuisisiGroup.setLayout(vakuisisiLayout)
+
+        #Fitur terakhir, keluar aplikasi
+        menuGroup = QGroupBox("Opsi menu")
+        vmenuLayout = QVBoxLayout()
+
+        exitButton = QPushButton("Keluar")
+        #LISTENER EXIT BUTTON
+        exitButton.clicked.connect(self.exitConfirmation)
+
+        vmenuLayout.addWidget(exitButton)
+        menuGroup.setLayout(vmenuLayout)
+
+        #SUSUN WIDGET-WIDGET DAN SUBLAYOUT BERURUTAN
+
+        vlayout_h_t_1.addWidget(akuisisiGroup)
+        vlayout_h_t_1.addWidget(akuisisiGroup)
+        vlayout_h_t_1.addWidget(menuGroup)
+
+        hlayout_t.addLayout(vlayout_h_t_1)
+
+        fixedfont = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        fixedfont.setPointSize(12)
+        self.path = None
+
+        mainlayout.addLayout(hlayout_t)
+        mainlayout.addLayout(hlayout_b)
+>>>>>>> parent of 02d5a25... Fix bug freeze saat IP tidak ditemukan
 
         container = QWidget()
         container.setLayout(mainlayout)
@@ -165,12 +259,22 @@ class MainWindow(QMainWindow):
         fixedfont.setPointSize(12)
         self.path = None
 
+<<<<<<< HEAD
         self.update_title()
 
         #INIT THREAD UNTUK AKUISISI CITRA
         self.videoThread = Thread(self)
         self.videoThread.changePixmap.connect(self.takeVideo)
 
+=======
+        self.label = QLabel(self)
+        vlayout_h_t_2.addWidget(self.label)
+        hlayout_t.addLayout(vlayout_h_t_2)
+
+        th = Thread(self)
+        th.changePixmap.connect(self.setImage)
+        th.start()
+>>>>>>> parent of 02d5a25... Fix bug freeze saat IP tidak ditemukan
         self.show()
 
     def akuisisiSelectionChange(self,i):
@@ -192,16 +296,33 @@ class MainWindow(QMainWindow):
 
     def changeDeviceToInternal(self):
         global usedDevice
+<<<<<<< HEAD
         if(self.selectDeviceRadioBtn1.isChecked()):
             usedDevice = self.currentDevice
             print('DEVICE USED IS : ',usedDevice)
+=======
+        global changeDevice
+        usedDevice = self.currentDevice
+        print('DEVICE USED IS : ',usedDevice)
+        changeDevice = True
+        isAkuisisi = False
+>>>>>>> parent of 02d5a25... Fix bug freeze saat IP tidak ditemukan
 
     def changeDeviceToIp(self):
         global usedDevice
+<<<<<<< HEAD
         if(self.selectDeviceRadioBtn2.isChecked()):
             device = self.formAkuisisiIP.text()
             usedDevice = "http://"+device+"/video?type=some.mjpeg"
             print('DEVICE USED IS : ', usedDevice)
+=======
+        global changeDevice
+        device = self.formAkuisisiIP.text()
+        usedDevice = "http://"+device+"/video?type=some.mjpeg"
+        print('DEVICE USED IS : ', usedDevice)
+        changeDevice = True
+        isAkuisisi = False
+>>>>>>> parent of 02d5a25... Fix bug freeze saat IP tidak ditemukan
 
     def exitConfirmation(self):
         dlg = QMessageBox()
