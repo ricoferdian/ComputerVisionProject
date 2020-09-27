@@ -126,7 +126,9 @@ class MainWindow(QMainWindow):
         #ISI DARI SUB SUB LAYOUT COLUMN LEFT ROW 2 COL 2 : MENU AKUISISI DARI GAMBAR TERAKUISIS
         #LANGSUNG AJA ISIIN BUTTON, KARENA LAYOUT SUDAH VERTIKAL DAN HANYA BUTUH 1 COLUMN
         self.pilihGambarAkuisisiButton = QPushButton("PILIH GAMBAR")
+        self.pilihGambarAkuisisiButton.clicked.connect(self.file_open)
         self.simpanGambarAkuisisiButton = QPushButton("SIMPAN GAMBAR")
+        self.simpanGambarAkuisisiButton.clicked.connect(self.file_save)
         #GABUNGKAN
         columnLeftRow2Col2.addWidget(self.pilihGambarAkuisisiButton)
         columnLeftRow2Col2.addWidget(self.simpanGambarAkuisisiButton)
@@ -233,7 +235,8 @@ class MainWindow(QMainWindow):
         path, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Images (*.bmp *.jpg);;All files (*.*)")
         if path:
             try:
-                print(path)
+                print('path of opened file',path)
+                self.akuisisiImage.setPixmap(QPixmap(path))
             except Exception as e:
                 self.dialog_critical(str(e))
             else:
@@ -241,22 +244,24 @@ class MainWindow(QMainWindow):
                 self.update_title()
 
     def file_save(self):
-        if self.originalImage.size>0:
-            return self.file_saveas()
-        self.dialog_critical("Buka citra terlebih dahulu sebelum menyimpan !")
+        if(self.videoThread.isRunning()):
+            self.dialog_critical("Ambil gambar terlebih dahulu sebelum menyimpan !")
+        else:
+            if self.akuisisiImage.pixmap():
+                return self.file_saveas()
+            self.dialog_critical("Tidak ada citra akuisisi yang dapat disimpan !")
 
     def file_saveas(self):
+        print('TRYING TO SAVE AS')
         path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Images (*.bmp *.jpg);;All files (*.*)")
-
         if not path:
             # If dialog is cancelled, will return ''
             return
-
         self._save_to_path(path)
 
     def _save_to_path(self, path):
         try:
-            self.image_l.save(path)
+            self.akuisisiImage.pixmap().toImage().save(path)
         except Exception as e:
             self.dialog_critical(str(e))
         else:
