@@ -14,25 +14,17 @@ class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
     takePicture = pyqtSignal(QImage)
     def run(self):
-        print('INSIDE THREAD')
         global usedDevice
-        global isTakingImage
         video_capture = cv2.VideoCapture(usedDevice)
         while True:
             retAkuisisi, citraAkuisisi = video_capture.read()
             if retAkuisisi:
-                print('INSIDE THREAD LOOP. CITRA AKUISISI : ',citraAkuisisi)
                 rgbImage = cv2.cvtColor(citraAkuisisi, cv2.COLOR_BGR2RGB)
-                print('CONVERSION SUCCESS')
                 h, w, ch = rgbImage.shape
                 bytesPerLine = ch * w
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
                 p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
                 self.changePixmap.emit(p)
-                if(isTakingImage):
-                    print('IM TAKING PICTURE')
-                    isTakingImage = False
-                    break
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -80,8 +72,6 @@ class MainWindow(QMainWindow):
         akuisisiImageGroup = QGroupBox()
         self.akuisisiImage = QLabel(self)
         columnLeftRow1.addWidget(self.akuisisiImage)
-        #GABUNGKAN LAYOUT JIKA SEMUA WIDGET SUDAH TERDEFINISI
-        akuisisiImageGroup.setLayout(columnLeftRow1)
 
         #ISI DARI SUB LAYOUT COLUMN LEFT ROW 2 : MENU AKUISISI
         columnLeftRow2Col1 = QVBoxLayout()
@@ -107,7 +97,7 @@ class MainWindow(QMainWindow):
         #Combobox untuk pilih device
         self.akuisisiCombo = QComboBox()
         #SET VALUE COMBOBOX DENGAN DEVICE INTERNAL YANG SUDAH DIBACA
-        for i in range(3):
+        for i in retrieved_devices:
             self.currentDevice = 0
             self.akuisisiCombo.addItem("KAMERA"+str(i+1))
         #Listener Combobox
@@ -182,13 +172,11 @@ class MainWindow(QMainWindow):
             print('DEVICE USED IS : ',usedDevice)
 
     def mulaiAkuisisiCitra(self):
-        global isTakingImage
-        isTakingImage = False
+        self.videoThread.terminate()
         self.videoThread.start()
 
     def mulaiAmbilGambar(self):
-        global isTakingImage
-        isTakingImage = True
+        self.videoThread.terminate()
 
     def changeDeviceToInternal(self):
         global usedDevice
