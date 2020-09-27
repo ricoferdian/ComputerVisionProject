@@ -15,6 +15,7 @@ class Thread(QThread):
     takePicture = pyqtSignal(QImage)
     def run(self):
         global usedDevice
+        global video_capture
         video_capture = cv2.VideoCapture(usedDevice)
         while True:
             retAkuisisi, citraAkuisisi = video_capture.read()
@@ -44,8 +45,6 @@ class MainWindow(QMainWindow):
         retrieved_devices = utils.returnCameraIndexes()
 
         self._want_to_close = False
-
-        self.citraGroup = QGroupBox("Citra Didapatkan")
 
         #LAYOUT UTAMA VERTIKAL
         mainlayout = QHBoxLayout()
@@ -172,6 +171,11 @@ class MainWindow(QMainWindow):
             print('DEVICE USED IS : ',usedDevice)
 
     def mulaiAkuisisiCitra(self):
+        global usedDevice
+        if(self.selectDeviceRadioBtn2.isChecked()):
+            device = self.formAkuisisiIP.text()
+            usedDevice = "http://"+device+"/video?type=some.mjpeg"
+            print('DEVICE USED ISSSSSS : ', usedDevice)
         self.videoThread.terminate()
         self.videoThread.start()
 
