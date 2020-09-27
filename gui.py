@@ -5,39 +5,46 @@ from PyQt5.QtCore import *
 from PyQt5.QtMultimedia import *
 
 #LIBRARY ESENSIAL
-import numpy as np
-import os
 import sys
-import logging
-import threading
 import cv2
 
 #LIBRARY CUSTOM
 import utils
 
+#VARIABEL GLOBAL
 global isAkuisisi
+global isTakingPicture
 global usedDevice
 global changeDevice
 
-URL = "http://192.168.1.18:8080/video?type=some.mjpeg"
+usedDevice = 0
+isAkuisisi = False
+changeDevice = False
+isTakingPicture = False
+
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
-    print('INSIDE THREAD')
-
+    takePicture = pyqtSignal(QImage)
     def run(self):
-        global usedDevice
+        print('INSIDE THREAD')
         global isAkuisisi
+        global isTakingPicture
+        global usedDevice
         global changeDevice
-        usedDevice = 0
-        isAkuisisi = False
-        changeDevice = False
         video_capture = cv2.VideoCapture(usedDevice)
         while True:
             if(changeDevice):
                 print('DEVICE CHANGED')
-                video_capture = cv2.VideoCapture(usedDevice)
-                changeDevice = False
-                isAkuisisi = True
+                try:
+                    video_capture = cv2.VideoCapture(usedDevice)
+                    changeDevice = False
+                    isAkuisisi = True
+                except cv2.error as e:
+                    isAkuisisi = False
+                    print('GAGAL MENGAMBIL GAMBAR DARI ',usedDevice)
+                except:
+                    isAkuisisi = False
+                    print('TERJADI KEGAGALAN')
             elif(isAkuisisi):
                 retAkuisisi, citraAkuisisi = video_capture.read()
                 if retAkuisisi:
@@ -49,6 +56,9 @@ class Thread(QThread):
                     convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
                     p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
                     self.changePixmap.emit(p)
+                    if(isTakingPicture):
+                        print('IM TAKING PICTURE')
+                        isTakingPicture = False
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -56,8 +66,12 @@ class MainWindow(QMainWindow):
         self.initUiThread()
 
     @pyqtSlot(QImage)
-    def setImage(self, image):
-        self.label.setPixmap(QPixmap.fromImage(image))
+    def takeVideo(self, image):
+        self.videoLabel.setPixmap(QPixmap.fromImage(image))
+
+    @pyqtSlot(QImage)
+    def takePicture(self, image):
+        self.pictureLabel.setPixmap(QPixmap.fromImage(image))
 
     def initUiThread(self):
         print('running thread')
@@ -117,18 +131,17 @@ class MainWindow(QMainWindow):
         vlayout_OptionAkuisisiGroup.addWidget(self.formAkuisisiIP)
 
         #BUTTON MEMILIH OPSI
-        confirmAkuisisiIpButton = QPushButton("USE DEVICE")
+        confirmAkuisisiIpButton = QPushButton("GUNAKAN")
         confirmAkuisisiIpButton.clicked.connect(self.changeDeviceToInternal)
         vlayout_ActionAkuisisiGroup.addWidget(confirmAkuisisiIpButton)
 
-        confirmAkuisisiCameraButton = QPushButton("USE IP CAM")
+        confirmAkuisisiCameraButton = QPushButton("GUNAKAN")
         confirmAkuisisiCameraButton.clicked.connect(self.changeDeviceToIp)
         vlayout_ActionAkuisisiGroup.addWidget(confirmAkuisisiCameraButton)
 
         layoutOptionsFormAkuisisiGroup.addLayout(vlayout_labelAkuisisiGroup)
         layoutOptionsFormAkuisisiGroup.addLayout(vlayout_OptionAkuisisiGroup)
         layoutOptionsFormAkuisisiGroup.addLayout(vlayout_ActionAkuisisiGroup)
-
 
         #GABUNGIN LAYOUT
         vakuisisiLayout.addLayout(layoutOptionsFormAkuisisiGroup)
@@ -169,13 +182,13 @@ class MainWindow(QMainWindow):
 
         self.update_title()
 
-        self.label = QLabel(self)
-        vlayout_h_t_2.addWidget(self.label)
+        self.videoLabel = QLabel(self)
+        vlayout_h_t_2.addWidget(self.videoLabel)
         hlayout_t.addLayout(vlayout_h_t_2)
 
-        th = Thread(self)
-        th.changePixmap.connect(self.setImage)
-        th.start()
+        self.videoThread = Thread(self)
+        self.videoThread.changePixmap.connect(self.takeVideo)
+        self.videoThread.start()
         self.show()
 
     def akuisisiSelectionChange(self,i):
@@ -190,6 +203,9 @@ class MainWindow(QMainWindow):
         print('DEVICE USED IS : ',usedDevice)
         changeDevice = True
         isAkuisisi = False
+        self.videoThread.terminate()
+        self.videoThread.changePixmap.connect(self.takeVideo)
+        self.videoThread.start()
 
     def changeDeviceToIp(self):
         global isAkuisisi
@@ -200,6 +216,9 @@ class MainWindow(QMainWindow):
         print('DEVICE USED IS : ', usedDevice)
         changeDevice = True
         isAkuisisi = False
+        self.videoThread.terminate()
+        self.videoThread.changePixmap.connect(self.takeVideo)
+        self.videoThread.start()
 
     def exitConfirmation(self):
         dlg = QMessageBox()
