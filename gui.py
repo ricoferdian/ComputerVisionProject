@@ -1,4 +1,6 @@
 #LIBRARY GUI
+import urllib
+
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -6,6 +8,7 @@ from PyQt5.QtCore import *
 #LIBRARY ESENSIAL
 import sys
 import cv2
+import imghdr
 
 #LIBRARY CUSTOM
 import utils
@@ -36,36 +39,153 @@ class MainWindow(QMainWindow):
     def takeVideo(self, image):
         self.akuisisiImage.setPixmap(QPixmap.fromImage(image))
 
-    @pyqtSlot(QImage)
-    def takePicture(self, image):
-        self.pictureLabel.setPixmap(QPixmap.fromImage(image))
-
     def initUiThread(self):
-        #VARIABEL YANG DIBUTUHKAN UNTUK AKUISISI : KAMERA DEVICES
-        retrieved_devices = utils.returnCameraIndexes()
-
         self._want_to_close = False
 
         #LAYOUT UTAMA VERTIKAL
-        mainlayout = QHBoxLayout()
+        self.mainlayout = QHBoxLayout()
 
-        #MAIN LAYOUT TERDAPAT 3 KOLOM
-        columnLeft = QVBoxLayout()
-        columnCenter = QVBoxLayout()
+        #INIT COLUMN LEFT TERMASUK PENGGABUNGAN DI FUNCTION YANG DIPISAH
+        self.initColumnLeftGui()
+        #INIT COLUMN RIGHT TERMASUK PENGGABUNGAN DI FUNCTION YANG DIPISAH
+        self.initColumnCenterGui()
+
         columnRight = QVBoxLayout()
 
-        #SUB LAYOUT COLUMN LEFT
-        columnLeftRow1 = QHBoxLayout()
-        columnLeftRow2 = QHBoxLayout()
+        #SUB LAYOUT COLUMN RIGHT
+        #BELUM DIBUAT. TUNGGU SAMPE DIMINTA BUAT FEATURE EXTRACTION
+
+        #JIKA SEMUA SUDAH DIDEFINISIKAN, GABUNGKAN DENGAN MAIN LAYOUT
+        self.mainlayout.addLayout(columnRight)
+
+        container = QWidget()
+        container.setLayout(self.mainlayout)
+        self.setCentralWidget(container)
+
+        self.status = QStatusBar()
+        self.setStatusBar(self.status)
+
+        fixedfont = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        fixedfont.setPointSize(12)
+        self.path = None
+
+        self.update_title()
+
+        #INIT THREAD UNTUK AKUISISI CITRA
+        self.videoThread = Thread(self)
+        self.videoThread.changePixmap.connect(self.takeVideo)
+        self.show()
+
+    def initColumnCenterGui(self):
+        #COLUMN CENTER
+        columnCenter = QVBoxLayout()
 
         #SUB LAYOUT COLUMN CENTER
         columnCenterRow1 = QHBoxLayout()
         columnCenterRow2 = QHBoxLayout()
 
-        #SUB LAYOUT COLUMN RIGHT
-        #BELUM DIBUAT. TUNGGU SAMPE DIMINTA BUAT FEATURE EXTRACTION
+        #ISI DARI SUB LAYOUT COLUMN CENTER ROW 1 : INFORMASI IMAGE SEPERTI PROPERTIES, DLL
+        columnCenterRow1Col1 = QVBoxLayout()
+        columnCenterRow1Col2 = QVBoxLayout()
+
+        #ROW 1 : JUDUL
+        columnCenterRow1Col1Row1 = QHBoxLayout()
+        self.imageProperties = QLabel(self)
+        columnCenterRow1Col1Row1.addWidget(self.imageProperties)
+
+        #ROW 2 TIPE FILE
+        columnCenterRow1Col1Row2 = QHBoxLayout()
+        self.labelTipefile = QLabel(self)
+        self.tipeFile = QLabel(self)
+        columnCenterRow1Col1Row2.addWidget(self.labelTipefile)
+        columnCenterRow1Col1Row2.addWidget(self.tipeFile)
+
+        #ROW 3 RESOLUSI
+        columnCenterRow1Col1Row3 = QHBoxLayout()
+        self.labelResolusi = QLabel(self)
+        self.resolusi = QLabel(self)
+        columnCenterRow1Col1Row3.addWidget(self.labelResolusi)
+        columnCenterRow1Col1Row3.addWidget(self.resolusi)
+
+        #ROW 4 UKURAN
+        columnCenterRow1Col1Row4 = QHBoxLayout()
+        self.labelSize = QLabel(self)
+        self.size = QLabel(self)
+        columnCenterRow1Col1Row4.addWidget(self.labelSize)
+        columnCenterRow1Col1Row4.addWidget(self.size)
+
+        #ROW 1 RED
+        columnCenterRow1Col2Row1 = QHBoxLayout()
+        self.labelred = QLabel(self)
+        self.red = QLabel(self)
+        columnCenterRow1Col2Row1.addWidget(self.labelred)
+        columnCenterRow1Col2Row1.addWidget(self.red)
+
+        #ROW 2 GREEN
+        columnCenterRow1Col2Row2 = QHBoxLayout()
+        self.labelgreen = QLabel(self)
+        self.green = QLabel(self)
+        columnCenterRow1Col2Row2.addWidget(self.labelgreen)
+        columnCenterRow1Col2Row2.addWidget(self.green)
+
+        #ROW 3 BLUE
+        columnCenterRow1Col2Row3 = QHBoxLayout()
+        self.labelblue = QLabel(self)
+        self.blue = QLabel(self)
+        columnCenterRow1Col2Row3.addWidget(self.labelblue)
+        columnCenterRow1Col2Row3.addWidget(self.blue)
+
+        columnCenterRow1Col1.addLayout(columnCenterRow1Col1Row1)
+        columnCenterRow1Col1.addLayout(columnCenterRow1Col1Row2)
+        columnCenterRow1Col1.addLayout(columnCenterRow1Col1Row3)
+        columnCenterRow1Col1.addLayout(columnCenterRow1Col1Row4)
+
+        columnCenterRow1Col2.addLayout(columnCenterRow1Col2Row1)
+        columnCenterRow1Col2.addLayout(columnCenterRow1Col2Row2)
+        columnCenterRow1Col2.addLayout(columnCenterRow1Col2Row3)
+
+        #ISI DARI SUB LAYOUT COLUMN CENTER ROW 2 : MENU PROPERTIES
+        columnCenterRow2Col1 = QVBoxLayout()
+        columnCenterRow2Col2 = QVBoxLayout()
+
+        #ISI DARI SUB SUB LAYOUT COLUMN CENTER ROW 2 COL 1
+        columnCenterRow2Col1Row1 = QHBoxLayout()
+        columnCenterRow2Col1Row2 = QHBoxLayout()
+
+        self.imagePropertiesButton = QPushButton("IMAGE PROPERTIES")
+        self.imagePropertiesButton.clicked.connect(self.showImageProperties)
+        self.imageIntensityButton = QPushButton("INTENSITY IMAGE")
+        self.imageIntensityButton.clicked.connect(self.showIntensity)
+
+        #GABUNGKAN
+        columnCenterRow2Col1Row1.addWidget(self.imagePropertiesButton)
+        columnCenterRow2Col1Row2.addWidget(self.imageIntensityButton)
+
+        #GABUNGKAN DENGAN PARENT
+        columnCenterRow2Col1.addLayout(columnCenterRow2Col1Row1)
+        columnCenterRow2Col1.addLayout(columnCenterRow2Col1Row2)
+
+        #GABUNGKAN DENGAN PARENT
+        columnCenterRow1.addLayout(columnCenterRow1Col1)
+        columnCenterRow1.addLayout(columnCenterRow1Col2)
+        columnCenterRow2.addLayout(columnCenterRow2Col1)
+        columnCenterRow2.addLayout(columnCenterRow2Col2)
+        columnCenter.addLayout(columnCenterRow1)
+        columnCenter.addLayout(columnCenterRow2)
+
+        self.mainlayout.addLayout(columnCenter)
 
 
+    def initColumnLeftGui(self):
+        #VARIABEL YANG DIBUTUHKAN UNTUK AKUISISI : KAMERA DEVICES
+        retrieved_devices = utils.returnCameraIndexes()
+
+        #MAIN LAYOUT TERDAPAT 3 KOLOM
+        columnLeft = QVBoxLayout()
+
+        #SUB LAYOUT COLUMN LEFT
+        columnLeftRow1 = QHBoxLayout()
+        columnLeftRow2 = QHBoxLayout()
         #ISI DARI SUB LAYOUT COLUMN LEFT ROW 1 : VIDEO ATAU GAMBAR AKUISISI
         #LANGSUNG AJA ISIIN GAMBAR AKUISISINYA
         akuisisiImageGroup = QGroupBox()
@@ -138,31 +258,8 @@ class MainWindow(QMainWindow):
         columnLeft.addLayout(columnLeftRow1)
         columnLeft.addLayout(columnLeftRow2)
 
-        #LAYOUT-LAYOUT LAINNYA DISINI
+        self.mainlayout.addLayout(columnLeft)
 
-        #JIKA SEMUA SUDAH DIDEFINISIKAN, GABUNGKAN DENGAN MAIN LAYOUT
-        mainlayout.addLayout(columnLeft)
-        mainlayout.addLayout(columnCenter)
-        mainlayout.addLayout(columnRight)
-
-        container = QWidget()
-        container.setLayout(mainlayout)
-        self.setCentralWidget(container)
-
-        self.status = QStatusBar()
-        self.setStatusBar(self.status)
-
-        fixedfont = QFontDatabase.systemFont(QFontDatabase.FixedFont)
-        fixedfont.setPointSize(12)
-        self.path = None
-
-        self.update_title()
-
-        #INIT THREAD UNTUK AKUISISI CITRA
-        self.videoThread = Thread(self)
-        self.videoThread.changePixmap.connect(self.takeVideo)
-
-        self.show()
 
     def akuisisiSelectionChange(self,i):
         global usedDevice
@@ -174,6 +271,10 @@ class MainWindow(QMainWindow):
 
     def mulaiAkuisisiCitra(self):
         global usedDevice
+        if(self.selectDeviceRadioBtn2.isChecked()):
+            device = self.formAkuisisiIP.text()
+            usedDevice = "http://"+device+"/video?type=some.mjpeg"
+            print('DEVICE USED ISSSSSS : ', usedDevice)
         self.videoThread.terminate()
         if(self.selectDeviceRadioBtn2.isChecked() or self.selectDeviceRadioBtn1.isChecked()):
             if(self.selectDeviceRadioBtn2.isChecked()):
@@ -182,9 +283,13 @@ class MainWindow(QMainWindow):
             self.videoThread.start()
         else:
             self.dialog_critical("Silahkan pilih opsi perangkat akuisisi citra !")
+        self.videoThread.start()
 
     def mulaiAmbilGambar(self):
         self.videoThread.terminate()
+        global img, typeFile
+        img = self.akuisisiImage.pixmap().toImage()
+        print('img',img)
 
     def changeDeviceToInternal(self):
         global usedDevice
@@ -234,11 +339,14 @@ class MainWindow(QMainWindow):
         dlg.show()
 
     def file_open(self):
+        global img, typeFile
         path, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Images (*.bmp *.jpg);;All files (*.*)")
         if path:
             try:
                 print('path of opened file',path)
                 self.akuisisiImage.setPixmap(QPixmap(path))
+                img = cv2.imread(path)
+                typeFile = imghdr.what(path)
             except Exception as e:
                 self.dialog_critical(str(e))
             else:
@@ -254,15 +362,19 @@ class MainWindow(QMainWindow):
             self.dialog_critical("Tidak ada citra akuisisi yang dapat disimpan !")
 
     def file_saveas(self):
+        print('TRYING TO SAVE AS')
         path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Images (*.bmp *.jpg);;All files (*.*)")
         if not path:
-            # If dialog is cancelled, will return ''
+            # If dialogf is cancelled, will return ''
             return
         self._save_to_path(path)
 
     def _save_to_path(self, path):
+        global img, typeFile
         try:
             self.akuisisiImage.pixmap().toImage().save(path)
+            img = cv2.imread(path)
+            typeFile = imghdr.what(path)
         except Exception as e:
             self.dialog_critical(str(e))
         else:
@@ -271,6 +383,31 @@ class MainWindow(QMainWindow):
 
     def update_title(self):
         self.setWindowTitle("Computer Vision and Soft Computing Software")
+
+    def showImageProperties(self):
+        print('SHOWING IMAGE PROPERTIES')
+        h, w, c = img.shape
+        self.imageProperties.setText("Image Properties")
+        self.labelResolusi.setText("Resolusi Gambar HxWxC :")
+        self.resolusi.setText(str(img.shape))
+        self.labelTipefile.setText("Tipe File :")
+        self.tipeFile.setText(str(typeFile))
+        self.labelSize.setText("Size :")
+        self.size.setText(str(img.size))
+
+    def showIntensity(self):
+        red = img[0, :, :]
+        green = img[:, 0,:]
+        blue = img[:,:,0]
+        self.labelred.setText("Red Intensity :")
+        self.red.setText(str(red))
+        self.labelgreen.setText("Green Intensity :")
+        self.green.setText(str(green))
+        self.labelblue.setText("Blue Intensity :")
+        self.blue.setText(str(blue))
+
+
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
