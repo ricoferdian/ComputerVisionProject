@@ -92,10 +92,8 @@ class MainWindow(QMainWindow):
 
         #ROW 1 : JUDUL DAN DEPTH
         columnCenterRow1Col1Row1 = QHBoxLayout()
-        self.imageProperties = QLabel(self)
         self.labelDepth = QLabel(self)
         self.imageDepth = QLabel(self)
-        columnCenterRow1Col1Row1.addWidget(self.imageProperties)
         columnCenterRow1Col1Row1.addWidget(self.labelDepth)
         columnCenterRow1Col1Row1.addWidget(self.imageDepth)
 
@@ -400,10 +398,18 @@ class MainWindow(QMainWindow):
         if(imageState==3):
             print('SHOWING IMAGE PROPERTIES')
             h, w, c = img.shape
-            self.imageProperties.setText("Image Properties")
             self.labelDepth.setText("Bit Depth :")
-            print('IMG BFR DEPTH',img,img.dtype)
-            self.imageDepth.setText('TES')
+
+            bitDepth = len(img[0][0])
+            if(str(img.dtype)=='uint4'):
+                self.imageDepth.setText(str(bitDepth*4)+' bit ('+str(bitDepth/2)+' Bytes)')
+            elif(str(img.dtype)=='uint8'):
+                self.imageDepth.setText(str(bitDepth*8)+' bit ('+str(bitDepth)+' Bytes)')
+            elif(str(img.dtype)=='uint16'):
+                self.imageDepth.setText(str(bitDepth*16)+' bit ('+str(bitDepth*2)+' Bytes)')
+            else:
+                self.imageDepth.setText('-tidak dapat membaca-')
+
             self.labelResolusi.setText("Resolusi Gambar HxWxC :")
             self.resolusi.setText(str(img.shape))
             self.labelTipefile.setText("Tipe File :")
