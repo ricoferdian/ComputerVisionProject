@@ -33,6 +33,8 @@ class Thread(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        global imageState
+        imageState = 0
         self.initUiThread()
 
     @pyqtSlot(QImage)
@@ -88,10 +90,14 @@ class MainWindow(QMainWindow):
         columnCenterRow1Col1 = QVBoxLayout()
         columnCenterRow1Col2 = QVBoxLayout()
 
-        #ROW 1 : JUDUL
+        #ROW 1 : JUDUL DAN DEPTH
         columnCenterRow1Col1Row1 = QHBoxLayout()
         self.imageProperties = QLabel(self)
+        self.labelDepth = QLabel(self)
+        self.imageDepth = QLabel(self)
         columnCenterRow1Col1Row1.addWidget(self.imageProperties)
+        columnCenterRow1Col1Row1.addWidget(self.labelDepth)
+        columnCenterRow1Col1Row1.addWidget(self.imageDepth)
 
         #ROW 2 TIPE FILE
         columnCenterRow1Col1Row2 = QHBoxLayout()
@@ -271,6 +277,8 @@ class MainWindow(QMainWindow):
 
     def mulaiAkuisisiCitra(self):
         global usedDevice
+        global imageState
+        imageState = 1
         if(self.selectDeviceRadioBtn2.isChecked()):
             device = self.formAkuisisiIP.text()
             usedDevice = "http://"+device+"/video?type=some.mjpeg"
@@ -286,10 +294,9 @@ class MainWindow(QMainWindow):
         self.videoThread.start()
 
     def mulaiAmbilGambar(self):
+        global imageState
+        imageState = 2
         self.videoThread.terminate()
-        global img, typeFile
-        img = self.akuisisiImage.pixmap().toImage()
-        print('img',img)
 
     def changeDeviceToInternal(self):
         global usedDevice
@@ -339,6 +346,8 @@ class MainWindow(QMainWindow):
         dlg.show()
 
     def file_open(self):
+        global imageState
+        imageState = 3
         global img, typeFile
         path, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Images (*.bmp *.jpg);;All files (*.*)")
         if path:
@@ -354,6 +363,8 @@ class MainWindow(QMainWindow):
                 self.update_title()
 
     def file_save(self):
+        global imageState
+        imageState = 3
         if(self.videoThread.isRunning()):
             self.dialog_critical("Ambil gambar terlebih dahulu sebelum menyimpan !")
         else:
@@ -385,26 +396,38 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Computer Vision and Soft Computing Software")
 
     def showImageProperties(self):
-        print('SHOWING IMAGE PROPERTIES')
-        h, w, c = img.shape
-        self.imageProperties.setText("Image Properties")
-        self.labelResolusi.setText("Resolusi Gambar HxWxC :")
-        self.resolusi.setText(str(img.shape))
-        self.labelTipefile.setText("Tipe File :")
-        self.tipeFile.setText(str(typeFile))
-        self.labelSize.setText("Size :")
-        self.size.setText(str(img.size))
+        global imageState
+        if(imageState==3):
+            print('SHOWING IMAGE PROPERTIES')
+            h, w, c = img.shape
+            self.imageProperties.setText("Image Properties")
+            self.labelDepth.setText("Bit Depth :")
+            print('IMG BFR DEPTH',img,img.dtype)
+            self.imageDepth.setText('TES')
+            self.labelResolusi.setText("Resolusi Gambar HxWxC :")
+            self.resolusi.setText(str(img.shape))
+            self.labelTipefile.setText("Tipe File :")
+            self.tipeFile.setText(str(typeFile))
+            self.labelSize.setText("Size :")
+            self.size.setText(str(img.size))
+        else:
+            self.dialog_critical("Simpan atau buka gambar terlebih dahulu sebelum melihat properti citra !")
+
 
     def showIntensity(self):
-        red = img[0, :, :]
-        green = img[:, 0,:]
-        blue = img[:,:,0]
-        self.labelred.setText("Red Intensity :")
-        self.red.setText(str(red))
-        self.labelgreen.setText("Green Intensity :")
-        self.green.setText(str(green))
-        self.labelblue.setText("Blue Intensity :")
-        self.blue.setText(str(blue))
+        global imageState
+        if(imageState==3):
+            red = img[0, :, :]
+            green = img[:, 0,:]
+            blue = img[:,:,0]
+            self.labelred.setText("Red Intensity :")
+            self.red.setText(str(red))
+            self.labelgreen.setText("Green Intensity :")
+            self.green.setText(str(green))
+            self.labelblue.setText("Blue Intensity :")
+            self.blue.setText(str(blue))
+        else:
+            self.dialog_critical("Simpan atau buka gambar terlebih dahulu sebelum melihat properti citra !")
 
 
 
