@@ -277,11 +277,7 @@ class MainWindow(QMainWindow):
         global usedDevice
         global imageState
         imageState = 1
-        if(self.selectDeviceRadioBtn2.isChecked()):
-            device = self.formAkuisisiIP.text()
-            usedDevice = "http://"+device+"/video?type=some.mjpeg"
-            print('DEVICE USED ISSSSSS : ', usedDevice)
-        self.videoThread.terminate()
+
         if(self.selectDeviceRadioBtn2.isChecked() or self.selectDeviceRadioBtn1.isChecked()):
             if(self.selectDeviceRadioBtn2.isChecked()):
                 device = self.formAkuisisiIP.text()
@@ -289,12 +285,15 @@ class MainWindow(QMainWindow):
             self.videoThread.start()
         else:
             self.dialog_critical("Silahkan pilih opsi perangkat akuisisi citra !")
-        self.videoThread.start()
 
     def mulaiAmbilGambar(self):
         global imageState
-        imageState = 2
-        self.videoThread.terminate()
+        if(imageState==1):
+            imageState = 2
+            self.videoThread.terminate()
+        else:
+            self.dialog_critical("Akuisisi citra terlebih dahulu sebelum mengambil gambar !")
+
 
     def changeDeviceToInternal(self):
         global usedDevice
