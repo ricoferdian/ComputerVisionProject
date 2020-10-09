@@ -553,11 +553,11 @@ class MainWindow(QMainWindow):
                 self.update_title()
 
     def file_save(self):
-        global imageState
-        imageState = 3
         if(self.videoThread.isRunning()):
             self.dialog_critical("Ambil gambar terlebih dahulu sebelum menyimpan !")
         else:
+            global imageState
+            imageState = 3
             if self.akuisisiImage.pixmap():
                 return self.file_saveas()
             self.dialog_critical("Tidak ada citra akuisisi yang dapat disimpan !")
@@ -583,6 +583,8 @@ class MainWindow(QMainWindow):
             self.update_title()
 
     def file_converted_open(self):
+        global imageState
+        imageState = 3
         global img, typeFile
         path, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Images (*.bmp *.jpg);;All files (*.*)")
         if path:
@@ -601,6 +603,8 @@ class MainWindow(QMainWindow):
         if(self.videoThread.isRunning()):
             self.dialog_critical("Ambil gambar terlebih dahulu sebelum menyimpan !")
         else:
+            global imageState
+            imageState = 3
             if self.convertedImage.pixmap():
                 return self.file_converted_saveas()
             self.dialog_critical("Tidak ada citra akuisisi yang dapat disimpan !")
