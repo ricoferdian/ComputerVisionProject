@@ -146,7 +146,7 @@ class MainWindow(QMainWindow):
     def initUiThread(self):
         self._want_to_close = False
         self.menuOperasi = ['Konversi ke Grayscale','Konversi ke Biner',
-                            'Atur Brightness','Atur Contrast','Operasi Negasi']
+                            'Atur Brightness','Atur Contrast','Contrast Stretching','Operasi Negasi']
 
         #LAYOUT UTAMA VERTIKAL
         self.mainlayout = QHBoxLayout()
@@ -223,11 +223,14 @@ class MainWindow(QMainWindow):
                 if(value[0]>value[1]):
                     self.dialog_critical("Nilai minimum tidak boleh lebih dari nilai maksimum !")
                     return
-                imageArray = operasiTitik.conStrech(imageArray,h, w, ch, value[0],value[1])
+                imageArray = operasiTitik.contrast(imageArray,h, w, ch, value[0],value[1])
                 print("Success!")
             else:
                 print("Cancel!")
                 return
+        elif(selectedOperasi=='Contrast Stretching'):
+            print('AKAN Contrast Stretching')
+            imageArray = operasiTitik.conStrech(imageArray,h, w, ch)
         elif(selectedOperasi=='Operasi Negasi'):
             print('AKAN Operasi Negasi')
             imageArray = operasiTitik.negative(imageArray,h, w, ch)

@@ -67,7 +67,7 @@ def negative(img, height, width, color):
     return np.array(temp)
 
 #INPUT : 3 DIMENSI RGB, OUTPUT : 3 DIMENSI RGB
-def conStrech(img, height, width, color, minA, maxA):
+def contrast(img, height, width, color, minA, maxA):
     if color is 3:
         temp = [[[0 for i in range(color)] for j in range(width)] for k in range(height)]
     else:
@@ -88,3 +88,56 @@ def conStrech(img, height, width, color, minA, maxA):
                     constrech = 0
                 temp[i][j] = np.uint8(constrech)
     return np.array(temp)
+
+def getMinPixel(img,height,width,color):
+    if color is 3:
+        minR = img[..., 2].min()
+        minG = img[..., 1].min()
+        minB = img[..., 0].min()
+        minA = [minR,minG,minB]
+        minA = min(minA)
+        minA = [minA,minA,minA]
+        return minA
+    else:
+        minA = img[..., 0].min()
+        minA = [minA]
+        return minA
+
+def getMaxPixel(img,height,width,color):
+    if color is 3:
+        maxR = img[..., 2].max()
+        maxG = img[..., 1].max()
+        maxB = img[..., 0].max()
+        maxA = [maxR,maxG,maxB]
+        maxA = max(maxA)
+        maxA = [maxA,maxA,maxA]
+        return maxA
+    else:
+        maxA = img[..., 0].max()
+        maxA = [maxA]
+        return maxA
+
+def conStrech(img,height,width,color):
+    if color is 3:
+        temp = [[[0 for i in range(color)] for j in range(width)]for k in range(height)]
+    else:
+        temp = [[0 for i in range(width)] for j in range(height)]
+    minA = getMinPixel(img,height,width,color)
+    maxA = getMaxPixel(img,height,width,color)
+    print(min,max)
+    for i in range(height):
+        for j in range(width):
+            if color is 3:
+                for k in range(color):
+                    constrech = ((img[i,j,k]-np.uint8(minA[k]))/np.uint8(maxA[k]-minA[k]))*(255)
+                    if(constrech<0):
+                        constrech = 0
+                    temp[i][j][k] = np.uint8(constrech)
+            else:
+                constrech = ((img[i,j]-np.uint8(minA[0]))/np.uint8(maxA[0]-minA[0]))*(255)
+                if(constrech[0]<0):
+                    constrech = 0
+                temp[i][j] = np.uint8(constrech)
+    result = np.array(temp)
+#     plt.imshow(result,cmap='gray')
+    return result
