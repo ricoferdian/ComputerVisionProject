@@ -9,9 +9,11 @@ from PyQt5.QtCore import *
 import sys
 import cv2
 import imghdr
+import os
 
 #LIBRARY CUSTOM
 import utils
+import operasiTitikBackend as operasiTitik
 
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
@@ -30,6 +32,106 @@ class Thread(QThread):
                 p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
                 self.changePixmap.emit(p)
 
+
+class OperasiCitraDialog(QDialog):
+    def __init__(self, jenis_operasi, parent=None):
+        super(OperasiCitraDialog, self).__init__(parent)
+        self.result = ""
+        mainLayout = QVBoxLayout()
+
+        self.jenis_operasi = jenis_operasi
+        if(jenis_operasi=='Atur Contrast'):
+            layoutSlider1 = QHBoxLayout()
+            layoutSlider2 = QHBoxLayout()
+
+            self.setWindowTitle("Atur Nilai Minimum dan Maksimum Kontras")
+            self.convertslider = QSlider()
+            self.convertslider.setOrientation(Qt.Horizontal)
+            self.convertslider.setTickPosition(QSlider.TicksBelow)
+            self.convertslider.setTickInterval(1)
+            self.convertslider.setMinimum(0)
+            self.convertslider.setMaximum(255)
+            layoutSlider1.addWidget(self.convertslider)
+
+            slider1Group = QGroupBox("Nilai Minimum")
+            slider1Group.setLayout(layoutSlider1)
+
+            self.convertslider2 = QSlider()
+            self.convertslider2.setOrientation(Qt.Horizontal)
+            self.convertslider2.setTickPosition(QSlider.TicksBelow)
+            self.convertslider2.setTickInterval(1)
+            self.convertslider2.setMinimum(0)
+            self.convertslider2.setMaximum(255)
+            layoutSlider2.addWidget(self.convertslider2)
+
+            slider2Group = QGroupBox("Nilai Maksimum")
+            slider2Group.setLayout(layoutSlider2)
+
+            mainLayout.addWidget(slider1Group)
+            mainLayout.addWidget(slider2Group)
+
+        elif(jenis_operasi=='Atur Brightness'):
+            layoutSlider1 = QHBoxLayout()
+
+            self.setWindowTitle("Atur nilai brightness")
+            self.convertslider = QSlider()
+            self.convertslider.setOrientation(Qt.Horizontal)
+            self.convertslider.setTickPosition(QSlider.TicksBelow)
+            self.convertslider.setTickInterval(1)
+            self.convertslider.setMinimum(0)
+            self.convertslider.setMaximum(255)
+            layoutSlider1.addWidget(self.convertslider)
+
+            slider1Group = QGroupBox("Nilai Brightness")
+            slider1Group.setLayout(layoutSlider1)
+
+            mainLayout.addWidget(slider1Group)
+        elif(jenis_operasi=='Konversi ke Biner'):
+            layoutSlider1 = QHBoxLayout()
+
+            self.setWindowTitle("Atur threshold")
+            self.convertslider = QSlider()
+            self.convertslider.setOrientation(Qt.Horizontal)
+            self.convertslider.setTickPosition(QSlider.TicksBelow)
+            self.convertslider.setTickInterval(1)
+            self.convertslider.setMinimum(0)
+            self.convertslider.setMaximum(255)
+            layoutSlider1.addWidget(self.convertslider)
+
+            slider1Group = QGroupBox("Nilai Threshold")
+            slider1Group.setLayout(layoutSlider1)
+
+            mainLayout.addWidget(slider1Group)
+
+        buttonLayout = QHBoxLayout()
+        self.btnJalankan = QPushButton("OK")
+        buttonLayout.addWidget(self.btnJalankan)
+        self.btnJalankan.clicked.connect(self.OnOk)
+
+        self.btnBatalkan = QPushButton("Cancel")
+        buttonLayout.addWidget(self.btnBatalkan)
+        self.btnBatalkan.clicked.connect(self.OnCancel)
+
+        mainLayout.addLayout(buttonLayout)
+
+        self.setLayout(mainLayout)
+
+    def OnOk(self):
+        if(self.jenis_operasi=='Atur Contrast'):
+            self.result = [self.convertslider.value(),self.convertslider2.value()]
+        elif(self.jenis_operasi=='Atur Brightness'):
+            self.result = [self.convertslider.value()]
+        elif(self.jenis_operasi=='Konversi ke Biner'):
+            self.result = [self.convertslider.value()]
+        self.done(1)
+        return self.result
+
+    def OnCancel(self):
+        self.close()
+
+    def GetValue(self):
+        return self.result
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -43,6 +145,8 @@ class MainWindow(QMainWindow):
 
     def initUiThread(self):
         self._want_to_close = False
+        self.menuOperasi = ['Konversi ke RGB','Konversi ke Grayscale','Konversi ke Biner',
+                            'Atur Brightness','Atur Contrast','Operasi Negasi']
 
         #LAYOUT UTAMA VERTIKAL
         self.mainlayout = QHBoxLayout()
@@ -51,6 +155,7 @@ class MainWindow(QMainWindow):
         self.initColumnLeftGui()
         #INIT COLUMN RIGHT TERMASUK PENGGABUNGAN DI FUNCTION YANG DIPISAH
         self.initColumnCenterGui()
+        self.initColumnRightGui()
 
         columnRight = QVBoxLayout()
 
@@ -78,6 +183,101 @@ class MainWindow(QMainWindow):
         self.videoThread.changePixmap.connect(self.takeVideo)
         self.show()
 
+    def switchOperasiCitra(self, selectedOperasi):
+
+        imageArray = utils.convertQImageToMat(self.akuisisiImage.pixmap().toImage())
+        h, w, ch = imageArray.shape
+
+        print('imageArray',imageArray)
+        if(selectedOperasi=='Konversi ke RGB'):
+            print('AKAN KONVERSI KE RGB')
+        elif(selectedOperasi=='Konversi ke Grayscale'):
+            print('AKAN KONVERSI KE Grayscale')
+            imageArray = operasiTitik.rgb2Gray(imageArray,h, w, ch)
+        elif(selectedOperasi=='Konversi ke Biner'):
+            print('AKAN KONVERSI KE Biner')
+            dlg = OperasiCitraDialog('Konversi ke Biner')
+            if dlg.exec_():
+                value = dlg.GetValue()
+                print(value)
+                imageArray = operasiTitik.gray2Bin(imageArray,h, w, ch, value)
+                print("Success!")
+            else:
+                print("Cancel!")
+                return
+        elif(selectedOperasi=='Atur Brightness'):
+            print('AKAN Atur Brightness')
+            dlg = OperasiCitraDialog('Atur Brightness')
+            if dlg.exec_():
+                value = dlg.GetValue()
+                imageArray = operasiTitik.brighten(imageArray,h, w, ch, value)
+                print(value)
+                print("Success!")
+            else:
+                print("Cancel!")
+                return
+        elif(selectedOperasi=='Atur Contrast'):
+            print('AKAN Atur Contrast')
+            dlg = OperasiCitraDialog('Atur Contrast')
+            if dlg.exec_():
+                value = dlg.GetValue()
+                print(value)
+                if(value[0]>value[1]):
+                    self.dialog_critical("Nilai minimum tidak boleh lebih dari nilai maksimum !")
+                    return
+                imageArray = operasiTitik.conStrech(imageArray,h, w, ch, value[0],value[1])
+                print("Success!")
+            else:
+                print("Cancel!")
+                return
+        elif(selectedOperasi=='Operasi Negasi'):
+            print('AKAN Operasi Negasi')
+            imageArray = operasiTitik.negative(imageArray,h, w, ch)
+
+        bytesPerLine = ch * w
+        convertToQtFormat = QImage(imageArray.data, w, h, bytesPerLine, QImage.Format_RGB888)
+        self.convertedImage.setPixmap(QPixmap.fromImage(convertToQtFormat))
+
+    def initColumnRightGui(self):
+        #MAIN LAYOUT TERDAPAT 3 KOLOM
+        columnRight = QVBoxLayout()
+
+        #SUB LAYOUT COLUMN RIGHT
+        columnRightRow1 = QHBoxLayout()
+        columnRightRow2 = QHBoxLayout()
+
+        #SUB LAYOUT COLUMN RIGHT ROW
+        columnRightRow1Col1 = QHBoxLayout()
+        self.listOperasiTitik = QListWidget()
+        for n in self.menuOperasi:
+            self.listOperasiTitik.addItem(str(n))
+        self.listOperasiTitik.itemSelectionChanged.connect(self.operasiTitikChanged)
+
+        columnRightRow1Col1.addWidget(self.listOperasiTitik)
+        listOperasiTitikGroup = QGroupBox("Operasi Citra")
+        listOperasiTitikGroup.setLayout(columnRightRow1Col1)
+        columnRightRow1.addWidget(listOperasiTitikGroup)
+
+        #ISI DARI SUB SUB LAYOUT COLUMN CENTER ROW 2 COL 2
+        columnCenterRow2Col1 = QVBoxLayout()
+        columnCenterRow2Col2 = QVBoxLayout()
+
+        self.imageStartOperationButton = QPushButton("JALANKAN OPERASI")
+        self.imageStartOperationButton.clicked.connect(self.operasiTitikStart)
+        self.imageUndoOperationButton = QPushButton("URUNGKAN OPERASI")
+
+        #GABUNGKAN
+        columnCenterRow2Col1.addWidget(self.imageStartOperationButton)
+        columnCenterRow2Col2.addWidget(self.imageUndoOperationButton)
+
+        columnRightRow2.addLayout(columnCenterRow2Col1)
+        columnRightRow2.addLayout(columnCenterRow2Col2)
+
+        columnRight.addLayout(columnRightRow1)
+        columnRight.addLayout(columnRightRow2)
+
+        self.mainlayout.addLayout(columnRight)
+
     def initColumnCenterGui(self):
         #COLUMN CENTER
         columnCenter = QVBoxLayout()
@@ -88,65 +288,12 @@ class MainWindow(QMainWindow):
 
         #ISI DARI SUB LAYOUT COLUMN CENTER ROW 1 : INFORMASI IMAGE SEPERTI PROPERTIES, DLL
         columnCenterRow1Col1 = QVBoxLayout()
-        columnCenterRow1Col2 = QVBoxLayout()
+        self.convertedImage = QLabel(self)
+        columnCenterRow1Col1.addWidget(self.convertedImage)
 
-        #ROW 1 : JUDUL DAN DEPTH
-        columnCenterRow1Col1Row1 = QHBoxLayout()
-        self.labelDepth = QLabel(self)
-        self.imageDepth = QLabel(self)
-        columnCenterRow1Col1Row1.addWidget(self.labelDepth)
-        columnCenterRow1Col1Row1.addWidget(self.imageDepth)
-
-        #ROW 2 TIPE FILE
-        columnCenterRow1Col1Row2 = QHBoxLayout()
-        self.labelTipefile = QLabel(self)
-        self.tipeFile = QLabel(self)
-        columnCenterRow1Col1Row2.addWidget(self.labelTipefile)
-        columnCenterRow1Col1Row2.addWidget(self.tipeFile)
-
-        #ROW 3 RESOLUSI
-        columnCenterRow1Col1Row3 = QHBoxLayout()
-        self.labelResolusi = QLabel(self)
-        self.resolusi = QLabel(self)
-        columnCenterRow1Col1Row3.addWidget(self.labelResolusi)
-        columnCenterRow1Col1Row3.addWidget(self.resolusi)
-
-        #ROW 4 UKURAN
-        columnCenterRow1Col1Row4 = QHBoxLayout()
-        self.labelSize = QLabel(self)
-        self.size = QLabel(self)
-        columnCenterRow1Col1Row4.addWidget(self.labelSize)
-        columnCenterRow1Col1Row4.addWidget(self.size)
-
-        #ROW 1 RED
-        columnCenterRow1Col2Row1 = QHBoxLayout()
-        self.labelred = QLabel(self)
-        self.red = QLabel(self)
-        columnCenterRow1Col2Row1.addWidget(self.labelred)
-        columnCenterRow1Col2Row1.addWidget(self.red)
-
-        #ROW 2 GREEN
-        columnCenterRow1Col2Row2 = QHBoxLayout()
-        self.labelgreen = QLabel(self)
-        self.green = QLabel(self)
-        columnCenterRow1Col2Row2.addWidget(self.labelgreen)
-        columnCenterRow1Col2Row2.addWidget(self.green)
-
-        #ROW 3 BLUE
-        columnCenterRow1Col2Row3 = QHBoxLayout()
-        self.labelblue = QLabel(self)
-        self.blue = QLabel(self)
-        columnCenterRow1Col2Row3.addWidget(self.labelblue)
-        columnCenterRow1Col2Row3.addWidget(self.blue)
-
-        columnCenterRow1Col1.addLayout(columnCenterRow1Col1Row1)
-        columnCenterRow1Col1.addLayout(columnCenterRow1Col1Row2)
-        columnCenterRow1Col1.addLayout(columnCenterRow1Col1Row3)
-        columnCenterRow1Col1.addLayout(columnCenterRow1Col1Row4)
-
-        columnCenterRow1Col2.addLayout(columnCenterRow1Col2Row1)
-        columnCenterRow1Col2.addLayout(columnCenterRow1Col2Row2)
-        columnCenterRow1Col2.addLayout(columnCenterRow1Col2Row3)
+        listOperasiTitikGroup = QGroupBox("Citra Hasil")
+        listOperasiTitikGroup.setLayout(columnCenterRow1Col1)
+        columnCenterRow1.addWidget(listOperasiTitikGroup)
 
         #ISI DARI SUB LAYOUT COLUMN CENTER ROW 2 : MENU PROPERTIES
         columnCenterRow2Col1 = QVBoxLayout()
@@ -156,22 +303,37 @@ class MainWindow(QMainWindow):
         columnCenterRow2Col1Row1 = QHBoxLayout()
         columnCenterRow2Col1Row2 = QHBoxLayout()
 
-        self.imagePropertiesButton = QPushButton("IMAGE PROPERTIES")
-        self.imagePropertiesButton.clicked.connect(self.showImageProperties)
-        self.imageIntensityButton = QPushButton("INTENSITY IMAGE")
-        self.imageIntensityButton.clicked.connect(self.showIntensity)
+        self.imageTransformedSelectButton = QPushButton("PILIH GAMBAR")
+        self.imageTransformedSelectButton.clicked.connect(self.file_converted_open)
+        self.imageTransformedSaveButton = QPushButton("SIMPAN HASIL")
+        self.imageTransformedSaveButton.clicked.connect(self.file_converted_save)
 
         #GABUNGKAN
-        columnCenterRow2Col1Row1.addWidget(self.imagePropertiesButton)
-        columnCenterRow2Col1Row2.addWidget(self.imageIntensityButton)
+        columnCenterRow2Col1Row1.addWidget(self.imageTransformedSelectButton)
+        columnCenterRow2Col1Row2.addWidget(self.imageTransformedSaveButton)
 
         #GABUNGKAN DENGAN PARENT
         columnCenterRow2Col1.addLayout(columnCenterRow2Col1Row1)
         columnCenterRow2Col1.addLayout(columnCenterRow2Col1Row2)
 
+        #ISI DARI SUB SUB LAYOUT COLUMN CENTER ROW 2 COL 2
+        columnCenterRow2Col2Row1 = QHBoxLayout()
+        columnCenterRow2Col2Row2 = QHBoxLayout()
+
+        self.imageSavePropertiesButton = QPushButton("SIMPAN PROPERTI")
+        self.imageSavePropertiesButton.clicked.connect(self.saveImageProperties)
+        self.imageOpenPropertiesButton = QPushButton("PINDAHKAN <<")
+        self.imageOpenPropertiesButton.clicked.connect(self.pindahkanImageToAwal)
+
+        #GABUNGKAN
+        columnCenterRow2Col2Row1.addWidget(self.imageSavePropertiesButton)
+        columnCenterRow2Col2Row2.addWidget(self.imageOpenPropertiesButton)
+
         #GABUNGKAN DENGAN PARENT
-        columnCenterRow1.addLayout(columnCenterRow1Col1)
-        columnCenterRow1.addLayout(columnCenterRow1Col2)
+        columnCenterRow2Col2.addLayout(columnCenterRow2Col2Row1)
+        columnCenterRow2Col2.addLayout(columnCenterRow2Col2Row2)
+
+        #GABUNGKAN DENGAN PARENT
         columnCenterRow2.addLayout(columnCenterRow2Col1)
         columnCenterRow2.addLayout(columnCenterRow2Col2)
         columnCenter.addLayout(columnCenterRow1)
@@ -192,9 +354,14 @@ class MainWindow(QMainWindow):
         columnLeftRow2 = QHBoxLayout()
         #ISI DARI SUB LAYOUT COLUMN LEFT ROW 1 : VIDEO ATAU GAMBAR AKUISISI
         #LANGSUNG AJA ISIIN GAMBAR AKUISISINYA
+        columnLeftRow1Col1 = QVBoxLayout()
         akuisisiImageGroup = QGroupBox()
         self.akuisisiImage = QLabel(self)
-        columnLeftRow1.addWidget(self.akuisisiImage)
+        columnLeftRow1Col1.addWidget(self.akuisisiImage)
+
+        listOperasiTitikGroup = QGroupBox("Citra Awal")
+        listOperasiTitikGroup.setLayout(columnLeftRow1Col1)
+        columnLeftRow1.addWidget(listOperasiTitikGroup)
 
         #ISI DARI SUB LAYOUT COLUMN LEFT ROW 2 : MENU AKUISISI
         columnLeftRow2Col1 = QVBoxLayout()
@@ -272,6 +439,31 @@ class MainWindow(QMainWindow):
         if(self.selectDeviceRadioBtn1.isChecked()):
             usedDevice = self.currentDevice
             print('DEVICE USED IS : ',usedDevice)
+
+    def operasiTitikChanged(self):
+        print("Selected item : ",self.listOperasiTitik.selectedItems())
+
+    def operasiTitikStart(self):
+        print("Operasi akan dijalankan")
+        if self.akuisisiImage.pixmap():
+            selectedItem = self.listOperasiTitik.currentItem()
+            if(selectedItem):
+                selectedItem = selectedItem.text()
+                print("Selected item : ",selectedItem)
+                self.switchOperasiCitra(selectedItem)
+            else:
+                self.dialog_critical("Tidak ada opsi dipilih !")
+        else:
+            self.dialog_critical("Tidak ada citra awal yang dapat diproses !")
+
+
+    def pindahkanImageToAwal(self):
+        if self.akuisisiImage.pixmap():
+            tempPixmap = self.convertedImage.pixmap()
+            self.akuisisiImage.setPixmap(tempPixmap)
+        else:
+            self.dialog_critical("Tidak ada citra hasil yang dapat dipindahkan !")
+
 
     def mulaiAkuisisiCitra(self):
         global usedDevice
@@ -389,11 +581,125 @@ class MainWindow(QMainWindow):
             self.path = path
             self.update_title()
 
+    def file_converted_open(self):
+        global img, typeFile
+        path, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Images (*.bmp *.jpg);;All files (*.*)")
+        if path:
+            try:
+                print('path of opened file',path)
+                self.convertedImage.setPixmap(QPixmap(path))
+                img = cv2.imread(path)
+                typeFile = imghdr.what(path)
+            except Exception as e:
+                self.dialog_critical(str(e))
+            else:
+                self.path = path
+                self.update_title()
+
+    def file_converted_save(self):
+        if(self.videoThread.isRunning()):
+            self.dialog_critical("Ambil gambar terlebih dahulu sebelum menyimpan !")
+        else:
+            if self.convertedImage.pixmap():
+                return self.file_converted_saveas()
+            self.dialog_critical("Tidak ada citra akuisisi yang dapat disimpan !")
+
+    def file_converted_saveas(self):
+        print('TRYING TO SAVE AS')
+        path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Images (*.bmp *.jpg);;All files (*.*)")
+        if not path:
+            # If dialogf is cancelled, will return ''
+            return
+        self._save_converted_to_path(path)
+
+    def _save_converted_to_path(self, path):
+        global img, typeFile
+        try:
+            self.convertedImage.pixmap().toImage().save(path)
+            img = cv2.imread(path)
+            typeFile = imghdr.what(path)
+        except Exception as e:
+            self.dialog_critical(str(e))
+        else:
+            self.path = path
+            self.update_title()
+
     def update_title(self):
         self.setWindowTitle("Computer Vision and Soft Computing Software")
 
+    def saveImageProperties(self):
+        print('TRYING TO SAVE IMG PROP')
+        global imageState
+        global img, typeFile
+        if(imageState==3):
+            print('SAVING IMAGE PROPERTIES')
+
+            h, w, c = img.shape
+            bitDepth = str(len(img[0][0]))
+            imageResolution = str(img.shape)
+            imageFileType = str(typeFile)
+            imageSize = str(img.size)
+
+            print('WILL BE SAVED TO:',os.path.join(os.getcwd(),"RESULTS.txt"))
+
+            textPropertiesFile = open(r""+os.path.join(os.getcwd(),"RESULTS.txt")+"", "w+")
+
+            textPropertiesFile.write('HEIGHT : '+str(h)+'\n')
+            textPropertiesFile.write('WIDTH : '+str(w)+'\n')
+            textPropertiesFile.write('COLOR : '+str(c)+'\n')
+            textPropertiesFile.write('BIT DEPTH : '+bitDepth+'\n')
+            textPropertiesFile.write('RESOLUTION : '+imageResolution+'\n')
+            textPropertiesFile.write('FILE TYPE : '+imageFileType+'\n')
+            textPropertiesFile.write('FILE SIZE : '+imageSize+'\n')
+
+            redImg = [[0 for j in range(w)] for k in range(h)]
+            greenImg = [[0 for j in range(w)] for k in range(h)]
+            blueImg = [[0 for j in range(w)] for k in range(h)]
+
+            for i in range(h):
+                for j in range(w):
+                    for k in range(c):
+                        if k is 2:
+                            blueImg[i][j] = img[i,j,2]
+                        if k is 1:
+                            greenImg[i][j] = img[i,j,1]
+                        if k is 0:
+                            redImg[i][j] = img[i,j,0]
+
+            textPropertiesFile.write('RED PIXEL : \n')
+            textPropertiesFile.write('[')
+            for i in range(h):
+                textPropertiesFile.write('[')
+                for j in range(w):
+                    textPropertiesFile.write('['+str(redImg[i][j])+']')
+                textPropertiesFile.write(']\n')
+            textPropertiesFile.write(']\n')
+
+            textPropertiesFile.write('GREEN PIXEL : \n')
+            textPropertiesFile.write('[')
+            for i in range(h):
+                textPropertiesFile.write('[')
+                for j in range(w):
+                    textPropertiesFile.write('['+str(greenImg[i][j])+']')
+                textPropertiesFile.write(']\n')
+            textPropertiesFile.write(']\n')
+
+            textPropertiesFile.write('BLUE PIXEL : \n')
+            textPropertiesFile.write('[')
+            for i in range(h):
+                textPropertiesFile.write('[')
+                for j in range(w):
+                    textPropertiesFile.write('['+str(blueImg[i][j])+']')
+                textPropertiesFile.write(']\n')
+            textPropertiesFile.write(']\n')
+            textPropertiesFile.close()
+            self.dialog_info("Berhasil menyimpan file. File disimpan di :\n"+str(os.path.join(os.getcwd(),"RESULTS.txt")))
+        else:
+            self.dialog_critical("Simpan atau buka gambar terlebih dahulu sebelum melihat properti citra !")
+
     def showImageProperties(self):
         global imageState
+        global img, typeFile
         if(imageState==3):
             print('SHOWING IMAGE PROPERTIES')
             h, w, c = img.shape
