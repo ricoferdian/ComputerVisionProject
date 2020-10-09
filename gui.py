@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
 
     def initUiThread(self):
         self._want_to_close = False
-        self.menuOperasi = ['Konversi ke RGB','Konversi ke Grayscale','Konversi ke Biner',
+        self.menuOperasi = ['Konversi ke Grayscale','Konversi ke Biner',
                             'Atur Brightness','Atur Contrast','Operasi Negasi']
 
         #LAYOUT UTAMA VERTIKAL
@@ -189,9 +189,7 @@ class MainWindow(QMainWindow):
         h, w, ch = imageArray.shape
 
         print('imageArray',imageArray)
-        if(selectedOperasi=='Konversi ke RGB'):
-            print('AKAN KONVERSI KE RGB')
-        elif(selectedOperasi=='Konversi ke Grayscale'):
+        if(selectedOperasi=='Konversi ke Grayscale'):
             print('AKAN KONVERSI KE Grayscale')
             imageArray = operasiTitik.rgb2Gray(imageArray,h, w, ch)
         elif(selectedOperasi=='Konversi ke Biner'):
