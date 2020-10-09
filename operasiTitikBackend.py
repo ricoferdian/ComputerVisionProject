@@ -46,7 +46,6 @@ def gray2Bin2d(img, height, width, color, value):
 
 #INPUT : 3 DIMENSI RGB, OUTPUT : 3 DIMENSI RGB
 def brighten(img, height, width, color, value):
-    print(value)
     temp = [[[0 for i in range(color)] for j in range(width)] for k in range(height)]
     for i in range(height):
         for j in range(width):
@@ -55,6 +54,7 @@ def brighten(img, height, width, color, value):
                     temp[i][j][k] = np.uint8(255)
                 else:
                     temp[i][j][k] = img[i, j, k] + np.uint8(value)
+    print('temp',temp)
     return np.array(temp)
 
 #INPUT : 3 DIMENSI RGB, OUTPUT : 3 DIMENSI RGB
@@ -63,7 +63,7 @@ def negative(img, height, width, color):
     for i in range(height):
         for j in range(width):
             for k in range(color):
-                temp[i][j][2 - k] = np.uint8(255) - img[i, j, k]
+                temp[i][j][k] = np.uint8(255) - img[i, j, k]
     return np.array(temp)
 
 #INPUT : 3 DIMENSI RGB, OUTPUT : 3 DIMENSI RGB
@@ -78,12 +78,12 @@ def conStrech(img, height, width, color, minA, maxA):
         for j in range(width):
             if color is 3:
                 for k in range(color):
-                    constrech = ((img[i, j, k] - np.uint8(minA[k])) / np.uint8(maxA[k] - minA[k])) * (255)
+                    constrech = ((img[i, j, k] - np.uint8(minA)) / np.uint8(maxA - minA)) * (255)
                     if (constrech < 0):
                         constrech = 0
-                    temp[i][j][2 - k] = np.uint8(constrech)
+                    temp[i][j][k] = np.uint8(constrech)
             else:
-                constrech = ((img[i, j] - np.uint8(minA[0])) / np.uint8(maxA[0] - minA[0])) * (255)
+                constrech = ((img[i, j] - np.uint8(minA)) / np.uint8(maxA - minA)) * (255)
                 if (constrech[0] < 0):
                     constrech = 0
                 temp[i][j] = np.uint8(constrech)

@@ -200,7 +200,7 @@ class MainWindow(QMainWindow):
             if dlg.exec_():
                 value = dlg.GetValue()
                 print(value)
-                imageArray = operasiTitik.gray2Bin(imageArray,h, w, ch, value)
+                imageArray = operasiTitik.gray2Bin(imageArray,h, w, ch, value[0])
                 print("Success!")
             else:
                 print("Cancel!")
@@ -210,7 +210,7 @@ class MainWindow(QMainWindow):
             dlg = OperasiCitraDialog('Atur Brightness')
             if dlg.exec_():
                 value = dlg.GetValue()
-                imageArray = operasiTitik.brighten(imageArray,h, w, ch, value)
+                imageArray = operasiTitik.brighten(imageArray,h, w, ch, value[0])
                 print(value)
                 print("Success!")
             else:
