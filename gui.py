@@ -29,9 +29,8 @@ class Thread(QThread):
                 h, w, ch = rgbImage.shape
                 bytesPerLine = ch * w
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
-                p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
+                p = convertToQtFormat.scaled(100, 75, Qt.KeepAspectRatio)
                 self.changePixmap.emit(p)
-
 
 class OperasiCitraDialog(QDialog):
     def __init__(self, jenis_operasi, parent=None):
@@ -656,47 +655,48 @@ class MainWindow(QMainWindow):
             textPropertiesFile.write('RESOLUTION : '+imageResolution+'\n')
             textPropertiesFile.write('FILE TYPE : '+imageFileType+'\n')
             textPropertiesFile.write('FILE SIZE : '+imageSize+'\n')
-
-            redImg = [[0 for j in range(w)] for k in range(h)]
-            greenImg = [[0 for j in range(w)] for k in range(h)]
-            blueImg = [[0 for j in range(w)] for k in range(h)]
+            #
+            # redImg = [[0 for j in range(w)] for k in range(h)]
+            # greenImg = [[0 for j in range(w)] for k in range(h)]
+            # blueImg = [[0 for j in range(w)] for k in range(h)]
 
             for i in range(h):
                 for j in range(w):
-                    for k in range(c):
-                        if k is 2:
-                            blueImg[i][j] = img[i,j,2]
-                        if k is 1:
-                            greenImg[i][j] = img[i,j,1]
-                        if k is 0:
-                            redImg[i][j] = img[i,j,0]
+                    textPropertiesFile.write('('+str(i)+', '+str(j)+') = \tRED :\t'+str(img[i][j][0])+'\tGREEN :\t'+str(img[i][j][1])+'\tBLUE :\t'+str(img[i][j][2])+'\n')
+                    # for k in range(c):
+                        # if k is 2:
+                        #     blueImg[i][j] = img[i,j,2]
+                        # if k is 1:
+                        #     greenImg[i][j] = img[i,j,1]
+                        # if k is 0:
+                        #     redImg[i][j] = img[i,j,0]
 
-            textPropertiesFile.write('RED PIXEL : \n')
-            textPropertiesFile.write('[')
-            for i in range(h):
-                textPropertiesFile.write('[')
-                for j in range(w):
-                    textPropertiesFile.write('['+str(redImg[i][j])+']')
-                textPropertiesFile.write(']\n')
-            textPropertiesFile.write(']\n')
-
-            textPropertiesFile.write('GREEN PIXEL : \n')
-            textPropertiesFile.write('[')
-            for i in range(h):
-                textPropertiesFile.write('[')
-                for j in range(w):
-                    textPropertiesFile.write('['+str(greenImg[i][j])+']')
-                textPropertiesFile.write(']\n')
-            textPropertiesFile.write(']\n')
-
-            textPropertiesFile.write('BLUE PIXEL : \n')
-            textPropertiesFile.write('[')
-            for i in range(h):
-                textPropertiesFile.write('[')
-                for j in range(w):
-                    textPropertiesFile.write('['+str(blueImg[i][j])+']')
-                textPropertiesFile.write(']\n')
-            textPropertiesFile.write(']\n')
+            # textPropertiesFile.write('RED PIXEL : \n')
+            # textPropertiesFile.write('[')
+            # for i in range(h):
+            #     textPropertiesFile.write('[')
+            #     for j in range(w):
+            #         textPropertiesFile.write('['+str(redImg[i][j])+']')
+            #     textPropertiesFile.write(']\n')
+            # textPropertiesFile.write(']\n')
+            #
+            # textPropertiesFile.write('GREEN PIXEL : \n')
+            # textPropertiesFile.write('[')
+            # for i in range(h):
+            #     textPropertiesFile.write('[')
+            #     for j in range(w):
+            #         textPropertiesFile.write('['+str(greenImg[i][j])+']')
+            #     textPropertiesFile.write(']\n')
+            # textPropertiesFile.write(']\n')
+            #
+            # textPropertiesFile.write('BLUE PIXEL : \n')
+            # textPropertiesFile.write('[')
+            # for i in range(h):
+            #     textPropertiesFile.write('[')
+            #     for j in range(w):
+            #         textPropertiesFile.write('['+str(blueImg[i][j])+']')
+            #     textPropertiesFile.write(']\n')
+            # textPropertiesFile.write(']\n')
             textPropertiesFile.close()
             self.dialog_info("Berhasil menyimpan file. File disimpan di :\n"+str(os.path.join(os.getcwd(),"RESULTS.txt")))
         else:

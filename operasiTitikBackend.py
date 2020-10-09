@@ -8,6 +8,7 @@ def rgb2Gray(img, height, width, color):
             temp[i][j][0] = np.uint8((img[i, j, 0] / 3) + (img[i, j, 1] / 3) + (img[i, j, 2] / 3))
             temp[i][j][1] = temp[i][j][0]
             temp[i][j][2] = temp[i][j][0]
+            print('PIXEL ROW ',i,'COL ',j,' | RED:',img[i, j, 0],'GREEN:',img[i, j, 1],'BLUE:',img[i, j, 2])
     return np.array(temp)
 
 #INPUT : 3 DIMENSI RGB, OUTPUT : 2 DIMENSI GRAYSCALE
