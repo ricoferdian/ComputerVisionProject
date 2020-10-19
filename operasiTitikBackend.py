@@ -142,3 +142,124 @@ def conStrech(img,height,width,color):
     result = np.array(temp)
 #     plt.imshow(result,cmap='gray')
     return result
+
+def getR(img,height,width,color):
+    temp = [[[0 for i in range(color)] for j in range(width)]for k in range(height)]
+    for i in range(height):
+        for j in range(width):
+            for k in range(color):
+                if k is 0:
+                    temp[i][j][k] = img[i,j,2]
+                else:
+                    temp[i][j][k]= np.uint8(0)
+    result = np.array(temp)
+#     print(result)
+#     plt.imshow(result)
+    return result
+
+def getG(img,height,width,color):
+    temp = [[[0 for i in range(color)] for j in range(width)]for k in range(height)]
+    for i in range(height):
+        for j in range(width):
+            for k in range(color):
+                if k is 1:
+                    temp[i][j][k] = img[i,j,1]
+                else:
+                    temp[i][j][k]= np.uint8(0)
+    result = np.array(temp)
+#     plt.imshow(result)
+    return result
+
+def getB(img,height,width,color):
+    temp = [[[0 for i in range(color)] for j in range(width)]for k in range(height)]
+    for i in range(height):
+        for j in range(width):
+            for k in range(color):
+                if k is 2:
+                    temp[i][j][k] = img[i,j,0]
+                else:
+                    temp[i][j][k]= np.uint8(0)
+    result = np.array(temp)
+#     plt.imshow(result)
+    return result
+
+def histo(x):
+    hist, bins = np.histogram(x, bins=256)
+    return hist, bins
+
+def histogramEqualization(img, height, width, color):
+    if color is 3:
+        histogram = [[np.uint8(0) for i in range(256)] for j in range(color)]
+        r = getR(img, height, width, color)
+        g = getG(img, height, width, color)
+        b = getB(img, height, width, color)
+        histR, binR = histo(r)
+        histG, binG = histo(g)
+        histB, binB = histo(b)
+        hist = [histR, histG, histB]
+        bins = [binR, binG, binB]
+
+        minBin = [int(round(min(binR))), int(round(min(binG))), int(round(min(binB)))]
+        maxBin = [int(round(max(binR))), int(round(max(binG))), int(round(max(binB)))]
+        for i in range(color):
+            for j in range(minBin[i], maxBin[i]):
+                histogram[i][j] = hist[i][j - minBin[i]]
+        return equalizeRGB(height, width, color, histogram)
+    else:
+        histogram = [np.uint8(0) for i in range(256)]
+        hist, bins = histo(img)
+        minBin = round(min(bins))
+        maxBin = round(max(bins))
+        minBin = int(minBin)
+        maxBin = int(maxBin)
+        for j in range(minBin, maxBin):
+            histogram[j] = hist[j - minBin]
+        return equalizeGray(height, width, color, histogram)
+
+def equalizeRGB(height,width,color,hist):
+    n = [[0 for i in range(256)]for j in range(color)]
+    g = 256
+    for i in range(color):
+        headers = ['g','h(g)','c(g)','n(g)']
+#         t = PrettyTable(headers)
+        c = 0
+        for j in range(g):
+            h = hist[i][j]
+            c = c + h
+            n[i][j] = max(0,round(255*(c/(height*width*3)))-1)
+            # row = [j,h,c,n[i][j]]
+#             t.add_row(row)
+#         print(t)
+    return n
+
+def equalizeGray(height,width,color,hist):
+    n = [0 for i in range(256)]
+    g = 256
+    headers = ['g','h(g)','c(g)','n(g)']
+    # t = PrettyTable(headers)
+    c = 0
+    for i in range(g):
+        h = hist[i]
+        c = c + h
+        n[i] = max(0,round(255*(c/(height*width*3)))-1)
+        # row = [i,h,c,n[i]]
+        # t.add_row(row)
+    # print(t)
+    return n
+
+#Histogram Equalization, Input : rgb/binary image. Output : rgb/binary image
+def equalizeResult(img, height, width, color, n):
+    if color is 3:
+        temp = [[[0 for i in range(color)] for j in range(width)] for k in range(height)]
+    else:
+        temp = [[0 for i in range(width)] for j in range(height)]
+
+    for i in range(height):
+        for j in range(width):
+            if color is 3:
+                for k in range(color):
+                    temp[i][j][k] = np.uint8(n[k][img[i][j][k]])
+            else:
+                temp[i][j] = np.uint8(n[img[i][j][0]])
+    result = np.array(temp)
+    return result

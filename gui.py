@@ -29,7 +29,7 @@ class Thread(QThread):
                 h, w, ch = rgbImage.shape
                 bytesPerLine = ch * w
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
-                p = convertToQtFormat.scaled(100, 75, Qt.KeepAspectRatio)
+                p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
                 self.changePixmap.emit(p)
 
 class OperasiCitraDialog(QDialog):
@@ -145,7 +145,7 @@ class MainWindow(QMainWindow):
     def initUiThread(self):
         self._want_to_close = False
         self.menuOperasi = ['Konversi ke Grayscale','Konversi ke Biner',
-                            'Atur Brightness','Atur Contrast','Contrast Stretching','Operasi Negasi']
+                            'Atur Brightness','Atur Contrast','Contrast Stretching','Operasi Negasi','Histogram Equalization']
 
         #LAYOUT UTAMA VERTIKAL
         self.mainlayout = QHBoxLayout()
@@ -233,6 +233,11 @@ class MainWindow(QMainWindow):
         elif(selectedOperasi=='Operasi Negasi'):
             print('AKAN Operasi Negasi')
             imageArray = operasiTitik.negative(imageArray,h, w, ch)
+        elif(selectedOperasi=='Histogram Equalization'):
+            print('AKAN Histogram Equalization')
+            n = operasiTitik.histogramEqualization(imageArray,h, w, ch)
+            print('n:\n',n)
+            imageArray = operasiTitik.equalizeResult(imageArray,h, w, ch, n)
 
         bytesPerLine = ch * w
         convertToQtFormat = QImage(imageArray.data, w, h, bytesPerLine, QImage.Format_RGB888)
