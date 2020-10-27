@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 def returnCameraIndexes():
     # checks the first 10 indexes.
@@ -66,3 +67,7 @@ def getR(img, height, width, color):
                     temp[i][j][k] = np.uint8(0)
     result = np.array(temp)
     return result
+
+def plotHisto(x):
+    plt.hist(x.ravel(),256,[0,256])
+    plt.show()

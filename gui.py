@@ -1,15 +1,17 @@
-#LIBRARY GUI
+# LIBRARY GUI
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-#LIBRARY ESENSIAL
+# LIBRARY ESENSIAL
 import sys
 import cv2
 import imghdr
 import os
+import numpy as np
+import pyqtgraph as pg
 
-#LIBRARY CUSTOM
+# LIBRARY CUSTOM
 import utils
 import operasiTitikBackend as operasiTitik
 
@@ -29,6 +31,46 @@ class Thread(QThread):
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
                 p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
                 self.changePixmap.emit(p)
+
+
+class PlotHistogramDialog(QDialog):
+    def __init__(self, originalImage, parent=None):
+        super(PlotHistogramDialog, self).__init__(parent)
+        self.result = ""
+        mainLayout = QVBoxLayout()
+
+        self.height, self.width, self.channel = originalImage.shape
+
+        self.originalHist = pg.PlotWidget()
+        for i in range(self.channel):
+            histo = np.array([0])
+            hist, bins = self.histo(originalImage[:, :, i])
+            histo,color = self.get_histo(histo, hist, i)
+            self.originalHist.plot(bins, histo, pen=pg.mkPen(color, width=3))
+
+        self.btnJalankan = QPushButton("OK")
+        self.btnJalankan.clicked.connect(self.OnOk)
+
+        mainLayout.addWidget(self.originalHist)
+        mainLayout.addWidget(self.btnJalankan)
+
+        self.setLayout(mainLayout)
+
+    def histo(self, x):
+        hist, bins = np.histogram(x, bins=256)
+        return hist, bins
+
+    def get_histo(self,histo, hist, i):
+        histo = np.append(histo, hist)
+        color = 'r'
+        if i == 1:
+            color = 'g'
+        elif i == 2:
+            color = 'b'
+        return histo,color
+
+    def OnOk(self):
+        self.close()
 
 class OperasiCitraDialog(QDialog):
     def __init__(self, jenis_operasi, parent=None):
@@ -134,6 +176,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         global imageState
         imageState = 0
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('foreground', 'k')
         self.initUiThread()
 
     @pyqtSlot(QImage)
@@ -301,6 +345,7 @@ class MainWindow(QMainWindow):
         #ISI DARI SUB LAYOUT COLUMN CENTER ROW 2 : MENU PROPERTIES
         columnCenterRow2Col1 = QVBoxLayout()
         columnCenterRow2Col2 = QVBoxLayout()
+        columnCenterRow2Col3 = QVBoxLayout()
 
         #ISI DARI SUB SUB LAYOUT COLUMN CENTER ROW 2 COL 1
         columnCenterRow2Col1Row1 = QHBoxLayout()
@@ -331,14 +376,24 @@ class MainWindow(QMainWindow):
         #GABUNGKAN
         columnCenterRow2Col2Row1.addWidget(self.imageSavePropertiesButton)
         columnCenterRow2Col2Row2.addWidget(self.imageOpenPropertiesButton)
-
         #GABUNGKAN DENGAN PARENT
         columnCenterRow2Col2.addLayout(columnCenterRow2Col2Row1)
         columnCenterRow2Col2.addLayout(columnCenterRow2Col2Row2)
 
+        #ISI DARI SUB SUB LAYOUT COLUMN CENTER ROW 2 COL 3
+        columnCenterRow2Col3Row1 = QHBoxLayout()
+
+        self.plotHistogramHasilButton = QPushButton("HISTOGRAM")
+        self.plotHistogramHasilButton.clicked.connect(self.plotHistogramHasil)
+
+        #GABUNGKAN
+        columnCenterRow2Col3Row1.addWidget(self.plotHistogramHasilButton)
+        columnCenterRow2Col3.addLayout(columnCenterRow2Col3Row1)
+
         #GABUNGKAN DENGAN PARENT
         columnCenterRow2.addLayout(columnCenterRow2Col1)
         columnCenterRow2.addLayout(columnCenterRow2Col2)
+        columnCenterRow2.addLayout(columnCenterRow2Col3)
         columnCenter.addLayout(columnCenterRow1)
         columnCenter.addLayout(columnCenterRow2)
 
@@ -369,6 +424,7 @@ class MainWindow(QMainWindow):
         #ISI DARI SUB LAYOUT COLUMN LEFT ROW 2 : MENU AKUISISI
         columnLeftRow2Col1 = QVBoxLayout()
         columnLeftRow2Col2 = QVBoxLayout()
+        columnLeftRow2Col3 = QVBoxLayout()
 
         #ISI DARI SUB SUB LAYOUT COLUMN LEFT ROW 2 COL 1 : MENU AKUISISI DARI DEVICE
         columnLeftRow2Col1Row1 = QHBoxLayout()
@@ -426,14 +482,33 @@ class MainWindow(QMainWindow):
         #GABUNGKAN
         columnLeftRow2Col2.addWidget(self.pilihGambarAkuisisiButton)
         columnLeftRow2Col2.addWidget(self.simpanGambarAkuisisiButton)
+
+        #SUB NYA : COLUMN 4 -> BUTTON HISTOGRAM
+        self.plotHistogramButton = QPushButton("HISTOGRAM")
+        self.plotHistogramButton.clicked.connect(self.plotHistogram)
+        #GABUNGKAN
+        columnLeftRow2Col3.addWidget(self.plotHistogramButton)
+
         #GABUNGKAN DENGAN PARENT
         columnLeftRow2.addLayout(columnLeftRow2Col1)
         columnLeftRow2.addLayout(columnLeftRow2Col2)
+        columnLeftRow2.addLayout(columnLeftRow2Col3)
         columnLeft.addLayout(columnLeftRow1)
         columnLeft.addLayout(columnLeftRow2)
 
         self.mainlayout.addLayout(columnLeft)
 
+    def plotHistogram(self):
+        print("PLOT HISTOGRAM 1")
+        imageArray = utils.convertQImageToMat(self.akuisisiImage.pixmap().toImage())
+        dlg = PlotHistogramDialog(imageArray)
+        dlg.exec_()
+
+    def plotHistogramHasil(self):
+        print("PLOT HISTOGRAM 2")
+        imageArray = utils.convertQImageToMat(self.convertedImage.pixmap().toImage())
+        dlg = PlotHistogramDialog(imageArray)
+        dlg.exec_()
 
     def akuisisiSelectionChange(self,i):
         global usedDevice
