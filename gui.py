@@ -10,11 +10,14 @@ import imghdr
 import os
 import numpy as np
 import pyqtgraph as pg
+import PIL.Image
+import copy
 
 # LIBRARY CUSTOM
 import utils
 import operasiTitikBackend as operasiTitik
-import cannyEdgeDetectionBackend as ced
+import cannyEdgeDetectionBackend as cannyEdgeDetection
+import houghTransformCv2 as houghTrans
 
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
@@ -32,7 +35,6 @@ class Thread(QThread):
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
                 p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
                 self.changePixmap.emit(p)
-
 
 class PlotDistribusiKumulatif(QDialog):
     def __init__(self, originalImage, parent=None):
@@ -79,7 +81,7 @@ class PlotDistribusiKumulatif(QDialog):
         self.close()
 
 class PlotHistogramDialog(QDialog):
-    def __init__(self, originalImage, parent=None):
+    def __init__(self, originalImage, histogramTitle, parent=None):
         super(PlotHistogramDialog, self).__init__(parent)
         self.result = ""
         mainLayout = QVBoxLayout()
@@ -90,13 +92,26 @@ class PlotHistogramDialog(QDialog):
         for i in range(self.channel):
             histo = np.array([0])
             hist, bins = self.histo(originalImage[:, :, i])
-            histo,color = self.get_histo(histo, hist, i)
-            self.originalHist.plot(bins, histo, pen=pg.mkPen(color, width=3))
+            histo,color,brushcolor = self.get_histo(histo, hist, i)
+            self.originalHist.plot(bins, histo,fillLevel=-0.3,brush=brushcolor, pen=pg.mkPen(color, width=1))
+        self.originalHist.setTitle("Histogram "+histogramTitle)
+        self.originalHist.setLabel('left', 'Jumlah')
+        self.originalHist.setLabel('bottom', 'Nilai Intensitas Warna')
+
+        # self.labelproperties = QTextBrowser()
+        # self.labelrgb = QTextBrowser()
+        # self.labelproperties.setText('HEIGHT :' + str(self.height) + '\n WIDHT :' + str(self.width) + '\nCHANNEL:' + str(self.channel) + '\n IMG RESOLUTION :' + str(originalImage.shape) + '\n Size :' + str(originalImage.size))
+        # for i in range(self.height):
+        #     for j in range(self.width):
+        #         self.labelrgb.append('(' + str(i) + ', ' + str(j) + ') = \tRED :\t' + str(originalImage[i][j][0]) + '\tGREEN :\t' + str(
+        #                 originalImage[i][j][1]) + '\tBLUE :\t' + str(originalImage[i][j][2]) + '\n')
 
         self.btnJalankan = QPushButton("OK")
         self.btnJalankan.clicked.connect(self.OnOk)
 
         mainLayout.addWidget(self.originalHist)
+        # mainLayout.addWidget(self.labelproperties)
+        # mainLayout.addWidget(self.labelrgb)
         mainLayout.addWidget(self.btnJalankan)
 
         self.setLayout(mainLayout)
@@ -108,11 +123,14 @@ class PlotHistogramDialog(QDialog):
     def get_histo(self,histo, hist, i):
         histo = np.append(histo, hist)
         color = 'r'
+        brushcolor = (255,0,0,40)
         if i == 1:
+            brushcolor = (0,255,0,40)
             color = 'g'
         elif i == 2:
+            brushcolor = (0,0,255,40)
             color = 'b'
-        return histo,color
+        return histo,color,brushcolor
 
     def OnOk(self):
         self.close()
@@ -187,6 +205,205 @@ class OperasiCitraDialog(QDialog):
 
             mainLayout.addWidget(slider1Group)
 
+        elif(jenis_operasi=='Gaussian Blur'):
+            layoutSlider1 = QHBoxLayout()
+            layoutSlider2 = QHBoxLayout()
+
+            self.setWindowTitle("Atur parameter Gaussian Blur")
+            self.convertslider = QSlider()
+            self.convertslider.setOrientation(Qt.Horizontal)
+            self.convertslider.setTickPosition(QSlider.TicksBelow)
+            self.convertslider.setTickInterval(1)
+            self.convertslider.setMinimum(1)
+            self.convertslider.setMaximum(10)
+            layoutSlider1.addWidget(self.convertslider)
+
+            slider1Group = QGroupBox("Ukuran Kernel (Min 1, Maks 10x10)")
+            slider1Group.setLayout(layoutSlider1)
+
+            self.convertslider2 = QSlider()
+            self.convertslider2.setOrientation(Qt.Horizontal)
+            self.convertslider2.setTickPosition(QSlider.TicksBelow)
+            self.convertslider2.setTickInterval(1)
+            self.convertslider2.setMinimum(1)
+            self.convertslider2.setMaximum(10)
+            layoutSlider2.addWidget(self.convertslider2)
+
+            slider2Group = QGroupBox("Nilai Sigma (Min 1 Maks 10)")
+            slider2Group.setLayout(layoutSlider2)
+
+            mainLayout.addWidget(slider1Group)
+            mainLayout.addWidget(slider2Group)
+        elif(jenis_operasi=='Hough Transform Line'):
+            layoutSlider1 = QHBoxLayout()
+
+            self.setWindowTitle("Atur threshold")
+            self.convertslider = QSlider()
+            self.convertslider.setOrientation(Qt.Horizontal)
+            self.convertslider.setTickPosition(QSlider.TicksBelow)
+            self.convertslider.setTickInterval(1)
+            self.convertslider.setMinimum(0)
+            self.convertslider.setMaximum(255)
+            layoutSlider1.addWidget(self.convertslider)
+
+            slider1Group = QGroupBox("Nilai Threshold")
+            slider1Group.setLayout(layoutSlider1)
+
+            mainLayout.addWidget(slider1Group)
+        elif(jenis_operasi=='Hough Transform Circle'):
+            layoutSlider1 = QHBoxLayout()
+            layoutSlider2 = QHBoxLayout()
+            layoutSlider3 = QHBoxLayout()
+            layoutSlider4 = QHBoxLayout()
+
+            self.setWindowTitle("Atur parameter Hough Transform Circle Detection")
+            self.convertslider = QSlider()
+            self.convertslider.setOrientation(Qt.Horizontal)
+            self.convertslider.setTickPosition(QSlider.TicksBelow)
+            self.convertslider.setTickInterval(1)
+            self.convertslider.setMinimum(0)
+            self.convertslider.setMaximum(255)
+            layoutSlider1.addWidget(self.convertslider)
+
+            slider1Group = QGroupBox("Strong Pixel (Min 0 Max 255)")
+            slider1Group.setLayout(layoutSlider1)
+
+            self.convertslider2 = QSlider()
+            self.convertslider2.setOrientation(Qt.Horizontal)
+            self.convertslider2.setTickPosition(QSlider.TicksBelow)
+            self.convertslider2.setTickInterval(1)
+            self.convertslider2.setMinimum(1)
+            self.convertslider2.setMaximum(255)
+            layoutSlider2.addWidget(self.convertslider2)
+
+            slider2Group = QGroupBox("Weak Pixel (Min 0 Max 255)")
+            slider2Group.setLayout(layoutSlider2)
+
+            self.convertslider3 = QSlider()
+            self.convertslider3.setOrientation(Qt.Horizontal)
+            self.convertslider3.setTickPosition(QSlider.TicksBelow)
+            self.convertslider3.setTickInterval(1)
+            self.convertslider3.setMinimum(0)
+            self.convertslider3.setMaximum(500)
+            layoutSlider3.addWidget(self.convertslider3)
+
+            slider3Group = QGroupBox("Radius Lingkaran Minimum (Min 0 Max 500)")
+            slider3Group.setLayout(layoutSlider3)
+
+            self.convertslider4 = QSlider()
+            self.convertslider4.setOrientation(Qt.Horizontal)
+            self.convertslider4.setTickPosition(QSlider.TicksBelow)
+            self.convertslider4.setTickInterval(1)
+            self.convertslider4.setMinimum(0)
+            self.convertslider4.setMaximum(500)
+            layoutSlider4.addWidget(self.convertslider4)
+
+            slider4Group = QGroupBox("Radius Lingkaran Maksimum (Min 0 Max 500)")
+            slider4Group.setLayout(layoutSlider4)
+
+            mainLayout.addWidget(slider1Group)
+            mainLayout.addWidget(slider2Group)
+            mainLayout.addWidget(slider3Group)
+            mainLayout.addWidget(slider4Group)
+        elif(jenis_operasi=='Deteksi Tepi Canny Otomatis'):
+            layoutSlider1 = QHBoxLayout()
+
+            self.setWindowTitle("Atur nilai sigma Deteksi Tepi Canny")
+            self.convertslider = QSlider()
+            self.convertslider.setOrientation(Qt.Horizontal)
+            self.convertslider.setTickPosition(QSlider.TicksBelow)
+            self.convertslider.setTickInterval(1)
+            self.convertslider.setMinimum(0)
+            self.convertslider.setMaximum(255)
+            layoutSlider1.addWidget(self.convertslider)
+
+            slider1Group = QGroupBox("Nilai Sigma")
+            slider1Group.setLayout(layoutSlider1)
+
+            mainLayout.addWidget(slider1Group)
+
+        elif(jenis_operasi=='Deteksi Tepi Canny'):
+            layoutSlider1 = QHBoxLayout()
+            layoutSlider2 = QHBoxLayout()
+            layoutSlider3 = QHBoxLayout()
+            layoutSlider4 = QHBoxLayout()
+            layoutSlider5 = QHBoxLayout()
+            layoutSlider6 = QHBoxLayout()
+
+            self.setWindowTitle("Atur parameter Deteksi Tepi Canny")
+            self.convertslider = QSlider()
+            self.convertslider.setOrientation(Qt.Horizontal)
+            self.convertslider.setTickPosition(QSlider.TicksBelow)
+            self.convertslider.setTickInterval(1)
+            self.convertslider.setMinimum(1)
+            self.convertslider.setMaximum(10)
+            layoutSlider1.addWidget(self.convertslider)
+
+            slider1Group = QGroupBox("Ukuran Kernel (Min 1, Maks 10x10)")
+            slider1Group.setLayout(layoutSlider1)
+
+            self.convertslider2 = QSlider()
+            self.convertslider2.setOrientation(Qt.Horizontal)
+            self.convertslider2.setTickPosition(QSlider.TicksBelow)
+            self.convertslider2.setTickInterval(1)
+            self.convertslider2.setMinimum(1)
+            self.convertslider2.setMaximum(10)
+            layoutSlider2.addWidget(self.convertslider2)
+
+            slider2Group = QGroupBox("Nilai Sigma Gaussian Blur (Min 1 Maks 10)")
+            slider2Group.setLayout(layoutSlider2)
+
+            self.convertslider3 = QSlider()
+            self.convertslider3.setOrientation(Qt.Horizontal)
+            self.convertslider3.setTickPosition(QSlider.TicksBelow)
+            self.convertslider3.setTickInterval(1)
+            self.convertslider3.setMinimum(0)
+            self.convertslider3.setMaximum(255)
+            layoutSlider3.addWidget(self.convertslider3)
+
+            slider3Group = QGroupBox("Nilai Pixel Terlemah (Min 0 Maks 255)")
+            slider3Group.setLayout(layoutSlider3)
+
+            self.convertslider4 = QSlider()
+            self.convertslider4.setOrientation(Qt.Horizontal)
+            self.convertslider4.setTickPosition(QSlider.TicksBelow)
+            self.convertslider4.setTickInterval(1)
+            self.convertslider4.setMinimum(0)
+            self.convertslider4.setMaximum(255)
+            layoutSlider4.addWidget(self.convertslider4)
+
+            slider4Group = QGroupBox("Nilai Pixel Terkuat (Min 0 Maks 255)")
+            slider4Group.setLayout(layoutSlider4)
+
+            self.convertslider5 = QSlider()
+            self.convertslider5.setOrientation(Qt.Horizontal)
+            self.convertslider5.setTickPosition(QSlider.TicksBelow)
+            self.convertslider5.setTickInterval(1)
+            self.convertslider5.setMinimum(0)
+            self.convertslider5.setMaximum(100)
+            layoutSlider5.addWidget(self.convertslider5)
+
+            slider5Group = QGroupBox("Nilai Treshold Bawah (Min 0 Max 1)")
+            slider5Group.setLayout(layoutSlider5)
+
+            self.convertslider6 = QSlider()
+            self.convertslider6.setOrientation(Qt.Horizontal)
+            self.convertslider6.setTickPosition(QSlider.TicksBelow)
+            self.convertslider6.setTickInterval(1)
+            self.convertslider6.setMinimum(0)
+            self.convertslider6.setMaximum(100)
+            layoutSlider6.addWidget(self.convertslider6)
+
+            slider6Group = QGroupBox("Nilai Treshold Atas (Min 0 Max 1)")
+            slider6Group.setLayout(layoutSlider6)
+
+            mainLayout.addWidget(slider1Group)
+            mainLayout.addWidget(slider2Group)
+            mainLayout.addWidget(slider3Group)
+            mainLayout.addWidget(slider4Group)
+            mainLayout.addWidget(slider5Group)
+            mainLayout.addWidget(slider6Group)
+
         buttonLayout = QHBoxLayout()
         self.btnJalankan = QPushButton("OK")
         buttonLayout.addWidget(self.btnJalankan)
@@ -207,6 +424,18 @@ class OperasiCitraDialog(QDialog):
             self.result = [self.convertslider.value()]
         elif(self.jenis_operasi=='Konversi ke Biner'):
             self.result = [self.convertslider.value()]
+        if(self.jenis_operasi=='Gaussian Blur'):
+            self.result = [self.convertslider.value(),self.convertslider2.value()]
+        elif(self.jenis_operasi=='Hough Transform Line'):
+            self.result = [self.convertslider.value()]
+        elif(self.jenis_operasi=='Hough Transform Circle'):
+            self.result = [self.convertslider.value(),self.convertslider2.value(),self.convertslider3.value(),
+                           self.convertslider4.value()]
+        elif(self.jenis_operasi=='Deteksi Tepi Canny Otomatis'):
+            self.result = [self.convertslider.value()]
+        if(self.jenis_operasi=='Deteksi Tepi Canny'):
+            self.result = [self.convertslider.value(),self.convertslider2.value(),self.convertslider3.value(),
+                           self.convertslider4.value(),self.convertslider5.value(),self.convertslider6.value()]
         self.done(1)
         return self.result
 
@@ -227,13 +456,18 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(QImage)
     def takeVideo(self, image):
-        self.akuisisiImage.setPixmap(QPixmap.fromImage(image))
+        wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)
+        self.akuisisiImage.setPixmap(QPixmap.fromImage(image).scaled(wlabel,hlabel,Qt.KeepAspectRatio))
+        self.akuisisiImageData["data"] = utils.convertQImageToMat(QPixmap.fromImage(image).toImage())
 
     def initUiThread(self):
         self._want_to_close = False
         self.menuOperasi = ['Konversi ke Grayscale','Konversi ke Biner',
                             'Atur Brightness','Atur Contrast','Contrast Stretching',
-                            'Operasi Negasi','Histogram Equalization','Deteksi Tepi Canny']
+                            'Operasi Negasi','Histogram Equalization','Gaussian Blur',
+                            'Filtering Sobel','Deteksi Tepi Canny','Hough Transform Line','Hough Transform Circle',
+                            # 'Deteksi Tepi Canny Otomatis'
+                            ]
 
         #LAYOUT UTAMA VERTIKAL
         self.mainlayout = QHBoxLayout()
@@ -274,7 +508,8 @@ class MainWindow(QMainWindow):
         global screenWidth
         global screenHeight
 
-        imageArray = utils.convertQImageToMat(self.akuisisiImage.pixmap().toImage())
+        imageArray = self.akuisisiImageData["data"]
+        # imageArray = utils.convertQImageToMat(self.akuisisiImage.pixmap().toImage())
         h, w, ch = imageArray.shape
 
         print('imageArray',imageArray)
@@ -327,28 +562,92 @@ class MainWindow(QMainWindow):
             print('AKAN Histogram Equalization')
             n = operasiTitik.histogramEqualization(imageArray,h, w, ch)
             x = []
-            print('Len n',len(n))
+            print('Len n', len(n))
             for i in range(3):
                 y = []
                 for j in range(255):
                     y.append([n[i][j]])
                 x.append(y)
             x = np.array(x)
-            print('x:\n',x)
+            print('x:\n', x)
             dlg = PlotDistribusiKumulatif(x)
             dlg.exec_()
+            print('n:\n',n)
             imageArray = operasiTitik.equalizeResult(imageArray,h, w, ch, n)
-        elif(selectedOperasi=='Deteksi Tepi Canny'):
+        elif (selectedOperasi == 'Gaussian Blur'):
+            print('Gaussian Blur')
+            dlg = OperasiCitraDialog('Gaussian Blur')
+            if dlg.exec_():
+                value = dlg.GetValue()
+                print(value[0], value[1])
+                imageArray = cannyEdgeDetection.rgbGaussianBlur(imageArray,h, w, ch, value[0], value[1])
+                print(value)
+                print("Success!")
+            else:
+                print("Cancel!")
+                return
+        elif (selectedOperasi == 'Filtering Sobel'):
+            print('Filtering Sobel')
+            imageArray = cannyEdgeDetection.sobelFilterRgb(imageArray,h, w, ch)
+        elif (selectedOperasi == 'Deteksi Tepi Canny Otomatis'):
+            print('Deteksi Tepi Canny Otomatis')
+            dlg = OperasiCitraDialog('Deteksi Tepi Canny Otomatis')
+            if dlg.exec_():
+                value = dlg.GetValue()
+                print(value[0])
+                print(value)
+                imageArray = cannyEdgeDetection.scikit_canny(imageArray,h, w, 1, value[0])
+                print("Success Canny Otomatis!")
+                print("imageArray",imageArray)
+            else:
+                print("Cancel!")
+                return
+        elif (selectedOperasi == 'Hough Transform Line'):
+            print('Hough Transform Line')
+            dlg = OperasiCitraDialog('Hough Transform Line')
+            if dlg.exec_():
+                value = dlg.GetValue()
+                imageArray = houghTrans.houghTransformLine(imageArray,value[0])
+                print(value)
+                print("Success!")
+            else:
+                print("Cancel!")
+                return
+        elif (selectedOperasi == 'Hough Transform Circle'):
+            print('Hough Transform Circle')
+            dlg = OperasiCitraDialog('Hough Transform Circle')
+            if dlg.exec_():
+                value = dlg.GetValue()
+                imageArray = houghTrans.houghTransformCircle(imageArray,value[0],value[1],value[2],value[3])
+                print(value)
+                print("Success!")
+            else:
+                print("Cancel!")
+                return
+        elif (selectedOperasi == 'Deteksi Tepi Canny'):
             print('Deteksi Tepi Canny')
-            detector = ced.cannyEdgeDetector(imageArray, sigma=1.4, kernel_size=5, lowthreshold=0.09, highthreshold=0.17,
-                                             weak_pixel=100)
-            imageArray = np.array(detector.detect())
-            print(imageArray)
+            dlg = OperasiCitraDialog('Deteksi Tepi Canny')
+            if dlg.exec_():
+                value = dlg.GetValue()
+                print(value[0], value[1], value[2], value[3], value[4], value[5])
+                imageArray = cannyEdgeDetection.edgeDetection(imgs=imageArray,height=h,width=w,color=1,
+                                                            sigma=value[1],
+                                                            kernel_size=value[0],
+                                                            weak_pixel=value[2],
+                                                            strong_pixel=value[3],
+                                                            lowthreshold=value[4]*0.01,
+                                                            highthreshold=value[5]*0.01)
+                print(value)
+                print("Success!")
+            else:
+                print("Cancel!")
+                return
 
         bytesPerLine = ch * w
         convertToQtFormat = QImage(imageArray.data, w, h, bytesPerLine, QImage.Format_RGB888)
         wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)
-        self.convertedImage.setPixmap(QPixmap.fromImage(convertToQtFormat))
+        self.convertedImageData["data"] = imageArray
+        self.convertedImage.setPixmap(QPixmap.fromImage(convertToQtFormat).scaled(wlabel,hlabel,Qt.KeepAspectRatio))
 
     def initColumnRightGui(self):
         #MAIN LAYOUT TERDAPAT 3 KOLOM
@@ -401,6 +700,8 @@ class MainWindow(QMainWindow):
         #ISI DARI SUB LAYOUT COLUMN CENTER ROW 1 : INFORMASI IMAGE SEPERTI PROPERTIES, DLL
         columnCenterRow1Col1 = QVBoxLayout()
         self.convertedImage = QLabel(self)
+        #data untuk disimpan
+        self.convertedImageData = {"data":np.array([0])}
         columnCenterRow1Col1.addWidget(self.convertedImage)
 
         listOperasiTitikGroup = QGroupBox("Citra Hasil")
@@ -480,6 +781,7 @@ class MainWindow(QMainWindow):
         columnLeftRow1Col1 = QVBoxLayout()
         akuisisiImageGroup = QGroupBox()
         self.akuisisiImage = QLabel(self)
+        self.akuisisiImageData = {"data":np.array([0])}
         columnLeftRow1Col1.addWidget(self.akuisisiImage)
 
         listOperasiTitikGroup = QGroupBox("Citra Awal")
@@ -565,15 +867,20 @@ class MainWindow(QMainWindow):
 
     def plotHistogram(self):
         print("PLOT HISTOGRAM 1")
-        imageArray = utils.convertQImageToMat(self.akuisisiImage.pixmap().toImage())
-        dlg = PlotHistogramDialog(imageArray)
+        imageArray = self.akuisisiImageData["data"]
+        # imageArray = utils.convertQImageToMat(self.akuisisiImage.pixmap().toImage())
+
+        dlg = PlotHistogramDialog(imageArray, "Citra Akuisisi")
         dlg.exec_()
+
 
     def plotHistogramHasil(self):
         print("PLOT HISTOGRAM 2")
-        imageArray = utils.convertQImageToMat(self.convertedImage.pixmap().toImage())
-        dlg = PlotHistogramDialog(imageArray)
+        imageArray = self.convertedImageData["data"]
+        # imageArray = utils.convertQImageToMat(self.convertedImage.pixmap().toImage())
+        dlg = PlotHistogramDialog(imageArray, "Citra Hasil")
         dlg.exec_()
+
 
     def akuisisiSelectionChange(self,i):
         global usedDevice
@@ -607,7 +914,10 @@ class MainWindow(QMainWindow):
         if self.convertedImage.pixmap():
             tempPixmap = self.convertedImage.pixmap()
             wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)
-            self.akuisisiImage.setPixmap(tempPixmap)
+            self.akuisisiImage.setPixmap(tempPixmap.scaled(wlabel,hlabel,Qt.KeepAspectRatio))
+            self.akuisisiImageData = copy.deepcopy(self.convertedImageData)
+            print('self.akuisisiImageData =',self.akuisisiImageData)
+            print('self.convertedImageData =',self.convertedImageData)
         else:
             self.dialog_critical("Tidak ada citra hasil yang dapat dipindahkan !")
 
@@ -684,7 +994,6 @@ class MainWindow(QMainWindow):
     def file_open(self):
         global screenWidth
         global screenHeight
-
         global imageState
         imageState = 3
         global img, typeFile
@@ -693,9 +1002,16 @@ class MainWindow(QMainWindow):
             try:
                 print('path of opened file',path)
                 wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)
-                print('wlabel',wlabel)
-                print('hlabel',hlabel)
-                self.akuisisiImage.setPixmap(QPixmap(path))
+                print('wlabel', wlabel)
+                print('hlabel', hlabel)
+
+                realpixmap = QPixmap(path)
+                self.akuisisiImage.setPixmap(realpixmap.scaled(wlabel,hlabel,Qt.KeepAspectRatio))
+
+                imported_image = PIL.Image.open(path)
+                rgb_image = imported_image.convert('RGB')
+                self.akuisisiImageData["data"] = np.array(rgb_image)
+
                 img = cv2.imread(path)
                 typeFile = imghdr.what(path)
             except Exception as e:
@@ -725,7 +1041,12 @@ class MainWindow(QMainWindow):
     def _save_to_path(self, path):
         global img, typeFile
         try:
-            self.akuisisiImage.pixmap().toImage().save(path)
+            imageArray = self.akuisisiImageData["data"]
+            h, w, ch = imageArray.shape
+            bytesPerLine = ch * w
+            convertToQtFormat = QImage(imageArray.data, w, h, bytesPerLine, QImage.Format_RGB888)
+            convertToQtFormat.save(path)
+            # self.akuisisiImage.pixmap().toImage().save(path)
             img = cv2.imread(path)
             typeFile = imghdr.what(path)
         except Exception as e:
@@ -735,17 +1056,24 @@ class MainWindow(QMainWindow):
             self.update_title()
 
     def file_converted_open(self):
-        global imageState
         global img, typeFile
         global screenWidth
         global screenHeight
+        global imageState
         imageState = 3
+        global img, typeFile
         path, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Images (*.bmp *.jpg);;All files (*.*)")
         if path:
             try:
                 print('path of opened file',path)
-                wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)
-                self.convertedImage.setPixmap(QPixmap(path))
+                realPixmap = QPixmap(path)
+                wlabel, hlabel = utils.getCenterPanelSize(screenWidth, screenHeight)
+                self.convertedImage.setPixmap(realPixmap.scaled(wlabel,hlabel,Qt.KeepAspectRatio))
+
+                imported_image = PIL.Image.open(path)
+                rgb_image = imported_image.convert('RGB')
+                self.convertedImageData["data"] = np.array(rgb_image)
+
                 img = cv2.imread(path)
                 typeFile = imghdr.what(path)
             except Exception as e:
@@ -775,7 +1103,12 @@ class MainWindow(QMainWindow):
     def _save_converted_to_path(self, path):
         global img, typeFile
         try:
-            self.convertedImage.pixmap().toImage().save(path)
+            imageArray = self.convertedImageData["data"]
+            h, w, ch = imageArray.shape
+            bytesPerLine = ch * w
+            convertToQtFormat = QImage(imageArray.data, w, h, bytesPerLine, QImage.Format_RGB888)
+            convertToQtFormat.save(path)
+            # self.convertedImage.pixmap().toImage().save(path)
             img = cv2.imread(path)
             typeFile = imghdr.what(path)
         except Exception as e:
@@ -790,7 +1123,7 @@ class MainWindow(QMainWindow):
     def saveImageProperties(self):
         print('TRYING TO SAVE IMG PROP')
         global imageState
-        global img, typeFile
+        global img, typeFile, h, w, c, bitDepth
         if(imageState==3):
             print('SAVING IMAGE PROPERTIES')
 
@@ -910,8 +1243,8 @@ if __name__ == '__main__':
     # Panel kiri dan tengah masing-masing 40% width
     global screenWidth
 
-    #Panel atas masing-masing 80% height
-    #Panel bawah masing-masing 20% height
+    # Panel atas masing-masing 80% height
+    # Panel bawah masing-masing 20% height
     global screenHeight
 
     app = QApplication(sys.argv)

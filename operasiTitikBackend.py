@@ -45,6 +45,39 @@ def gray2Bin2d(img, height, width, color, value):
                 temp[i][j] = np.uint8(0)
     return np.array(temp)
 
+#INPUT : 3 DIMENSI RGB, OUTPUT : 2 DIMENSI BINER
+def gray2Bin2dBinary(img, height, width, color, value):
+    temp = [[0 for j in range(width)] for k in range(height)]
+    for i in range(height):
+        for j in range(width):
+            if((img[i, j, 0])>=value):
+                temp[i][j] = np.uint8(1)
+            else:
+                temp[i][j] = np.uint8(0)
+    return np.array(temp)
+
+def binary2dtobin(img, height, width):
+    temp = [[0 for j in range(width)] for k in range(height)]
+    for i in range(height):
+        for j in range(width):
+            if((img[i, j])>0):
+                temp[i][j] = np.uint8(255)
+            else:
+                temp[i][j] = np.uint8(0)
+    return np.array(temp)
+
+
+#INPUT : 3 DIMENSI RGB, OUTPUT : 2 DIMENSI BINER
+def bin2Bin2dBinary(img, height, width, color):
+    temp = [[0 for j in range(width)] for k in range(height)]
+    for i in range(height):
+        for j in range(width):
+            if((img[i, j, 0])>=127):
+                temp[i][j] = np.uint8(1)
+            else:
+                temp[i][j] = np.uint8(0)
+    return np.array(temp)
+
 #INPUT : 3 DIMENSI RGB, OUTPUT : 3 DIMENSI RGB
 def brighten(img, height, width, color, value):
     temp = [[[0 for i in range(color)] for j in range(width)] for k in range(height)]
@@ -92,9 +125,9 @@ def contrast(img, height, width, color, minA, maxA):
 
 def getMinPixel(img,height,width,color):
     if color is 3:
-        minR = img[..., 2].min()
+        minR = img[..., 0].min()
         minG = img[..., 1].min()
-        minB = img[..., 0].min()
+        minB = img[..., 2].min()
         minA = [minR,minG,minB]
         minA = min(minA)
         minA = [minA,minA,minA]
@@ -106,9 +139,9 @@ def getMinPixel(img,height,width,color):
 
 def getMaxPixel(img,height,width,color):
     if color is 3:
-        maxR = img[..., 2].max()
+        maxR = img[..., 0].max()
         maxG = img[..., 1].max()
-        maxB = img[..., 0].max()
+        maxB = img[..., 2].max()
         maxA = [maxR,maxG,maxB]
         maxA = max(maxA)
         maxA = [maxA,maxA,maxA]
@@ -149,9 +182,19 @@ def getR(img,height,width,color):
         for j in range(width):
             for k in range(color):
                 if k is 0:
-                    temp[i][j][k] = img[i,j,2]
+                    temp[i][j][k] = img[i,j,0]
                 else:
                     temp[i][j][k]= np.uint8(0)
+    result = np.array(temp)
+#     print(result)
+#     plt.imshow(result)
+    return result
+
+def getR2D(img,height,width,color):
+    temp = [[0 for j in range(width)]for k in range(height)]
+    for i in range(height):
+        for j in range(width):
+            temp[i][j] = img[i,j,0]
     result = np.array(temp)
 #     print(result)
 #     plt.imshow(result)
@@ -170,15 +213,48 @@ def getG(img,height,width,color):
 #     plt.imshow(result)
     return result
 
+def combineRGB2DtoRGB(imgR, imgG, imgB, height, width):
+    temp = [[[0 for i in range(3)] for j in range(width)]for k in range(height)]
+    for i in range(height):
+        for j in range(width):
+            for k in range(3):
+                if k is 0:
+                    temp[i][j][k] = imgR[i,j]
+                elif k is 1:
+                    temp[i][j][k] = imgG[i,j]
+                else:
+                    temp[i][j][k]= imgB[i,j]
+    result = np.array(temp)
+#     plt.imshow(result)
+    return result
+
+def getG2D(img,height,width,color):
+    temp = [[0 for j in range(width)]for k in range(height)]
+    for i in range(height):
+        for j in range(width):
+            temp[i][j] = img[i,j,1]
+    result = np.array(temp)
+#     plt.imshow(result)
+    return result
+
 def getB(img,height,width,color):
     temp = [[[0 for i in range(color)] for j in range(width)]for k in range(height)]
     for i in range(height):
         for j in range(width):
             for k in range(color):
                 if k is 2:
-                    temp[i][j][k] = img[i,j,0]
+                    temp[i][j][k] = img[i,j,2]
                 else:
                     temp[i][j][k]= np.uint8(0)
+    result = np.array(temp)
+#     plt.imshow(result)
+    return result
+
+def getB2D(img,height,width,color):
+    temp = [[0 for j in range(width)]for k in range(height)]
+    for i in range(height):
+        for j in range(width):
+            temp[i][j] = img[i,j,2]
     result = np.array(temp)
 #     plt.imshow(result)
     return result
@@ -190,9 +266,9 @@ def histo(x):
 def histogramEqualization(img, height, width, color):
     if color is 3:
         histogram = [[np.uint8(0) for i in range(256)] for j in range(color)]
-        r = getR(img, height, width, color)
-        g = getG(img, height, width, color)
-        b = getB(img, height, width, color)
+        r = getR2D(img, height, width, color)
+        g = getG2D(img, height, width, color)
+        b = getB2D(img, height, width, color)
         histR, binR = histo(r)
         histG, binG = histo(g)
         histB, binB = histo(b)

@@ -16,6 +16,31 @@ def returnCameraIndexes():
         i -= 1
     return arr
 
+def rgba2rgb( rgba, background=(255,255,255) ):
+    row, col, ch = rgba.shape
+    print('row, col, ch',row, col, ch)
+    if ch == 3:
+        return rgba
+
+    assert ch == 4, 'RGBA image has 4 channels.'
+
+    rgb = np.zeros( (row, col, 3), dtype='float32' )
+    r, g, b, a = rgba[:,:,0], rgba[:,:,1], rgba[:,:,2], rgba[:,:,3]
+
+    a = np.asarray( a, dtype='float32' ) / 255.0
+
+    R, G, B = background
+
+    print('r',r)
+    print('g',g)
+    print('b',b)
+    print('alpha',a)
+    rgb[:,:,0] = r * a + (1.0 - a) * R
+    rgb[:,:,1] = g * a + (1.0 - a) * G
+    rgb[:,:,2] = b * a + (1.0 - a) * B
+    print('rgb result',rgb)
+    return np.asarray(rgb, dtype='uint8')
+
 def convertQImageToMat(incomingImage):
     '''  Converts a QImage into an opencv MAT format  '''
 
