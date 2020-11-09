@@ -9,9 +9,10 @@ def houghTransformLine(img, max_slider):
     # Detect points that form a line
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, max_slider, minLineLength=10, maxLineGap=250)
     # Draw lines on the image
-    for line in lines:
-        x1, y1, x2, y2 = line[0]
-        cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 3)
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 3)
     # Show result
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return gray

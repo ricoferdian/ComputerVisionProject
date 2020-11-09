@@ -110,8 +110,8 @@ class PlotHistogramDialog(QDialog):
         self.btnJalankan.clicked.connect(self.OnOk)
 
         mainLayout.addWidget(self.originalHist)
-        # mainLayout.addWidget(self.labelproperties)
-        # mainLayout.addWidget(self.labelrgb)
+        mainLayout.addWidget(self.labelproperties)
+        mainLayout.addWidget(self.labelrgb)
         mainLayout.addWidget(self.btnJalankan)
 
         self.setLayout(mainLayout)
