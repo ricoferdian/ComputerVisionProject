@@ -23,6 +23,9 @@ def convertQImageToMat(incomingImage):
 
     width = incomingImage.width()
     height = incomingImage.height()
+    print("QTMAT h",height)
+    print("QTMAT w",width)
+    print("QTMAT hwc",height*width*3)
 
     ptr = incomingImage.bits()
     ptr.setsize(incomingImage.byteCount())
@@ -71,3 +74,12 @@ def getR(img, height, width, color):
 def plotHisto(x):
     plt.hist(x.ravel(),256,[0,256])
     plt.show()
+
+def getLeftPanelSize(w, h):
+    return int(w * 0.4),int(h * 0.8)
+
+def getCenterPanelSize(w, h):
+    return int(w * 0.4),int(h * 0.8)
+
+def getRightPanelSize(w, h):
+    return int(w * 0.2), int(h * 0.8)

@@ -14,6 +14,7 @@ import pyqtgraph as pg
 # LIBRARY CUSTOM
 import utils
 import operasiTitikBackend as operasiTitik
+import cannyEdgeDetectionBackend as ced
 
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
@@ -32,6 +33,50 @@ class Thread(QThread):
                 p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
                 self.changePixmap.emit(p)
 
+
+class PlotDistribusiKumulatif(QDialog):
+    def __init__(self, originalImage, parent=None):
+        super(PlotDistribusiKumulatif, self).__init__(parent)
+        self.result = ""
+        mainLayout = QVBoxLayout()
+
+        self.height, self.width, self.channel = originalImage.shape
+
+        print('height',self.height)
+        print('width',self.width)
+        print('channel',self.channel)
+
+        self.originalHist = pg.PlotWidget()
+
+        for i in range(self.channel):
+            histo = np.array([0])
+            hist, bins = self.histo(originalImage)
+            histo,color = self.get_histo(histo, hist, i)
+            self.originalHist.plot(bins, histo, pen=pg.mkPen(color, width=3))
+
+        self.btnJalankan = QPushButton("OK")
+        self.btnJalankan.clicked.connect(self.OnOk)
+
+        mainLayout.addWidget(self.originalHist)
+        mainLayout.addWidget(self.btnJalankan)
+
+        self.setLayout(mainLayout)
+
+    def histo(self, x):
+        hist, bins = np.histogram(x, bins=256)
+        return hist, bins
+
+    def get_histo(self,histo, hist, i):
+        histo = np.append(histo, hist)
+        color = 'r'
+        if i == 1:
+            color = 'g'
+        elif i == 2:
+            color = 'b'
+        return histo,color
+
+    def OnOk(self):
+        self.close()
 
 class PlotHistogramDialog(QDialog):
     def __init__(self, originalImage, parent=None):
@@ -187,7 +232,8 @@ class MainWindow(QMainWindow):
     def initUiThread(self):
         self._want_to_close = False
         self.menuOperasi = ['Konversi ke Grayscale','Konversi ke Biner',
-                            'Atur Brightness','Atur Contrast','Contrast Stretching','Operasi Negasi','Histogram Equalization']
+                            'Atur Brightness','Atur Contrast','Contrast Stretching',
+                            'Operasi Negasi','Histogram Equalization','Deteksi Tepi Canny']
 
         #LAYOUT UTAMA VERTIKAL
         self.mainlayout = QHBoxLayout()
@@ -225,6 +271,8 @@ class MainWindow(QMainWindow):
         self.show()
 
     def switchOperasiCitra(self, selectedOperasi):
+        global screenWidth
+        global screenHeight
 
         imageArray = utils.convertQImageToMat(self.akuisisiImage.pixmap().toImage())
         h, w, ch = imageArray.shape
@@ -278,11 +326,28 @@ class MainWindow(QMainWindow):
         elif(selectedOperasi=='Histogram Equalization'):
             print('AKAN Histogram Equalization')
             n = operasiTitik.histogramEqualization(imageArray,h, w, ch)
-            print('n:\n',n)
+            x = []
+            print('Len n',len(n))
+            for i in range(3):
+                y = []
+                for j in range(255):
+                    y.append([n[i][j]])
+                x.append(y)
+            x = np.array(x)
+            print('x:\n',x)
+            dlg = PlotDistribusiKumulatif(x)
+            dlg.exec_()
             imageArray = operasiTitik.equalizeResult(imageArray,h, w, ch, n)
+        elif(selectedOperasi=='Deteksi Tepi Canny'):
+            print('Deteksi Tepi Canny')
+            detector = ced.cannyEdgeDetector(imageArray, sigma=1.4, kernel_size=5, lowthreshold=0.09, highthreshold=0.17,
+                                             weak_pixel=100)
+            imageArray = np.array(detector.detect())
+            print(imageArray)
 
         bytesPerLine = ch * w
         convertToQtFormat = QImage(imageArray.data, w, h, bytesPerLine, QImage.Format_RGB888)
+        wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)
         self.convertedImage.setPixmap(QPixmap.fromImage(convertToQtFormat))
 
     def initColumnRightGui(self):
@@ -536,8 +601,12 @@ class MainWindow(QMainWindow):
 
 
     def pindahkanImageToAwal(self):
-        if self.akuisisiImage.pixmap():
+        global screenWidth
+        global screenHeight
+
+        if self.convertedImage.pixmap():
             tempPixmap = self.convertedImage.pixmap()
+            wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)
             self.akuisisiImage.setPixmap(tempPixmap)
         else:
             self.dialog_critical("Tidak ada citra hasil yang dapat dipindahkan !")
@@ -613,6 +682,9 @@ class MainWindow(QMainWindow):
         dlg.show()
 
     def file_open(self):
+        global screenWidth
+        global screenHeight
+
         global imageState
         imageState = 3
         global img, typeFile
@@ -620,6 +692,9 @@ class MainWindow(QMainWindow):
         if path:
             try:
                 print('path of opened file',path)
+                wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)
+                print('wlabel',wlabel)
+                print('hlabel',hlabel)
                 self.akuisisiImage.setPixmap(QPixmap(path))
                 img = cv2.imread(path)
                 typeFile = imghdr.what(path)
@@ -661,12 +736,15 @@ class MainWindow(QMainWindow):
 
     def file_converted_open(self):
         global imageState
-        imageState = 3
         global img, typeFile
+        global screenWidth
+        global screenHeight
+        imageState = 3
         path, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Images (*.bmp *.jpg);;All files (*.*)")
         if path:
             try:
                 print('path of opened file',path)
+                wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)
                 self.convertedImage.setPixmap(QPixmap(path))
                 img = cv2.imread(path)
                 typeFile = imghdr.what(path)
@@ -827,8 +905,23 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == '__main__':
+    # Biar tau ukuran layar user
+    # Panel kanan 20% width
+    # Panel kiri dan tengah masing-masing 40% width
+    global screenWidth
+
+    #Panel atas masing-masing 80% height
+    #Panel bawah masing-masing 20% height
+    global screenHeight
+
     app = QApplication(sys.argv)
     app.setApplicationName("Computer Vision and Soft Computing Software")
+
+    screen = app.primaryScreen()
+    size = screen.size()
+
+    screenWidth = size.width()
+    screenHeight = size.height()
 
     window = MainWindow()
     app.exec_()
