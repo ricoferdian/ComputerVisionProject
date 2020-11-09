@@ -98,13 +98,13 @@ class PlotHistogramDialog(QDialog):
         self.originalHist.setLabel('left', 'Jumlah')
         self.originalHist.setLabel('bottom', 'Nilai Intensitas Warna')
 
-        # self.labelproperties = QTextBrowser()
-        # self.labelrgb = QTextBrowser()
-        # self.labelproperties.setText('HEIGHT :' + str(self.height) + '\n WIDHT :' + str(self.width) + '\nCHANNEL:' + str(self.channel) + '\n IMG RESOLUTION :' + str(originalImage.shape) + '\n Size :' + str(originalImage.size))
-        # for i in range(self.height):
-        #     for j in range(self.width):
-        #         self.labelrgb.append('(' + str(i) + ', ' + str(j) + ') = \tRED :\t' + str(originalImage[i][j][0]) + '\tGREEN :\t' + str(
-        #                 originalImage[i][j][1]) + '\tBLUE :\t' + str(originalImage[i][j][2]) + '\n')
+        self.labelproperties = QTextBrowser()
+        self.labelrgb = QTextBrowser()
+        self.labelproperties.setText('HEIGHT :' + str(self.height) + '\n WIDHT :' + str(self.width) + '\nCHANNEL:' + str(self.channel) + '\n IMG RESOLUTION :' + str(originalImage.shape) + '\n Size :' + str(originalImage.size))
+        for i in range(self.height):
+            for j in range(self.width):
+                self.labelrgb.append('(' + str(i) + ', ' + str(j) + ') = \tRED :\t' + str(originalImage[i][j][0]) + '\tGREEN :\t' + str(
+                        originalImage[i][j][1]) + '\tBLUE :\t' + str(originalImage[i][j][2]) + '\n')
 
         self.btnJalankan = QPushButton("OK")
         self.btnJalankan.clicked.connect(self.OnOk)
