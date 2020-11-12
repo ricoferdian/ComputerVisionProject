@@ -618,14 +618,15 @@ class MainWindow(QMainWindow):
         elif (selectedOperasi == 'Hough Transform Circle'):
             print('Hough Transform Circle')
             dlg = OperasiCitraDialog('Hough Transform Circle')
-            if dlg.exec_():
-                value = dlg.GetValue()
-                imageArray = houghTrans.houghTransformCircle(imageArray,value[0],value[1],value[2],value[3])
-                print(value)
-                print("Success!")
-            else:
-                print("Cancel!")
-                return
+            imageArray = houghTrans.houghTransformCircle(imageArray)
+            # if dlg.exec_():
+            #     value = dlg.GetValue()
+            #     imageArray = houghTrans.houghTransformCircle(imageArray,value[0],value[1],value[2],value[3])
+            #     print(value)
+            #     print("Success!")
+            # else:
+            #     print("Cancel!")
+            #     return
         elif (selectedOperasi == 'Deteksi Tepi Canny'):
             print('Deteksi Tepi Canny')
             dlg = OperasiCitraDialog('Deteksi Tepi Canny')

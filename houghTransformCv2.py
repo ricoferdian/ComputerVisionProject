@@ -17,7 +17,7 @@ def houghTransformLine(img, max_slider):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return gray
 
-def houghTransformCircle(img, param1=200, param2=10,minRadius=5, maxRadius=30):
+def houghTransformCircle(img, param1=200, param2=10,minRadius=30, maxRadius=35):
     print('p1,p2,min,max',param1,param2,minRadius,maxRadius)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
