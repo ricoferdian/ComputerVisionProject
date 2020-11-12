@@ -244,10 +244,10 @@ class OperasiCitraDialog(QDialog):
             self.convertslider.setTickPosition(QSlider.TicksBelow)
             self.convertslider.setTickInterval(1)
             self.convertslider.setMinimum(0)
-            self.convertslider.setMaximum(255)
+            self.convertslider.setMaximum(500)
             layoutSlider1.addWidget(self.convertslider)
 
-            slider1Group = QGroupBox("Nilai Threshold")
+            slider1Group = QGroupBox("Threshold (Min 0 max 500)")
             slider1Group.setLayout(layoutSlider1)
 
             mainLayout.addWidget(slider1Group)
