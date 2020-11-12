@@ -333,8 +333,9 @@ class OperasiCitraDialog(QDialog):
             mainLayout.addWidget(slider2Group)
             mainLayout.addWidget(slider3Group)
             mainLayout.addWidget(slider4Group)
-        elif(jenis_operasi=='Deteksi Tepi Canny Otomatis'):
+        elif(jenis_operasi=='Deteksi Tepi Canny Opencv'):
             layoutSlider1 = QHBoxLayout()
+            layoutSlider2 = QHBoxLayout()
 
             self.setWindowTitle("Atur nilai sigma Deteksi Tepi Canny")
             self.convertslider = QSlider()
@@ -345,10 +346,22 @@ class OperasiCitraDialog(QDialog):
             self.convertslider.setMaximum(255)
             layoutSlider1.addWidget(self.convertslider)
 
-            slider1Group = QGroupBox("Nilai Sigma")
+            slider1Group = QGroupBox("Threshold 1")
             slider1Group.setLayout(layoutSlider1)
 
+            self.convertslider2 = QSlider()
+            self.convertslider2.setOrientation(Qt.Horizontal)
+            self.convertslider2.setTickPosition(QSlider.TicksBelow)
+            self.convertslider2.setTickInterval(1)
+            self.convertslider2.setMinimum(1)
+            self.convertslider2.setMaximum(255)
+            layoutSlider2.addWidget(self.convertslider2)
+
+            slider2Group = QGroupBox("Threshold 2")
+            slider2Group.setLayout(layoutSlider2)
+
             mainLayout.addWidget(slider1Group)
+            mainLayout.addWidget(slider2Group)
 
         elif(jenis_operasi=='Deteksi Tepi Canny'):
             layoutSlider1 = QHBoxLayout()
@@ -459,8 +472,8 @@ class OperasiCitraDialog(QDialog):
         elif(self.jenis_operasi=='Hough Transform Circle'):
             self.result = [self.convertslider.value(),self.convertslider2.value(),self.convertslider3.value(),
                            self.convertslider4.value()]
-        elif(self.jenis_operasi=='Deteksi Tepi Canny Otomatis'):
-            self.result = [self.convertslider.value()]
+        elif(self.jenis_operasi=='Deteksi Tepi Canny Opencv'):
+            self.result = [self.convertslider.value(),self.convertslider2.value()]
         if(self.jenis_operasi=='Deteksi Tepi Canny'):
             self.result = [self.convertslider.value(),self.convertslider2.value(),self.convertslider3.value(),
                            self.convertslider4.value(),self.convertslider5.value(),self.convertslider6.value()]
@@ -495,7 +508,7 @@ class MainWindow(QMainWindow):
                             'Atur Brightness','Atur Contrast','Contrast Stretching',
                             'Operasi Negasi','Histogram Equalization','Gaussian Blur',
                             'Filtering Sobel','Deteksi Tepi Canny','Hough Transform Line','Hough Transform Circle',
-                            'Hough Transform Circle (Parameterized)','Deteksi Tepi Canny Otomatis'
+                            'Hough Transform Circle (Parameterized)','Deteksi Tepi Canny Opencv'
                             ]
 
         #LAYOUT UTAMA VERTIKAL
@@ -617,16 +630,18 @@ class MainWindow(QMainWindow):
         elif (selectedOperasi == 'Filtering Sobel'):
             print('Filtering Sobel')
             imageArray = cannyEdgeDetection.sobelFilterRgb(imageArray,h, w, ch)
-        elif (selectedOperasi == 'Deteksi Tepi Canny Otomatis'):
+        elif (selectedOperasi == 'Deteksi Tepi Canny Opencv'):
             print('Deteksi Tepi Canny Otomatis')
-            dlg = OperasiCitraDialog('Deteksi Tepi Canny Otomatis')
+            dlg = OperasiCitraDialog('Deteksi Tepi Canny Opencv')
             if dlg.exec_():
                 value = dlg.GetValue()
                 print(value[0])
                 print(value)
-                imageArray = cannyEdgeDetection.scikit_canny(imageArray,h, w, 1, value[0])
+                imageArray = cannyEdgeDetection.opencv_canny(imageArray, value[0], value[1])
+                # imageArray = cannyEdgeDetection.scikit_canny(imageArray,h, w, 1, value[0])
                 print("Success Canny Otomatis!")
                 print("imageArray",imageArray)
+                self.convertedImageData["channel"] = 1
             else:
                 print("Cancel!")
                 return

@@ -196,6 +196,14 @@ def edgeDetection(imgs, height, width, color, sigma=1, kernel_size=5, weak_pixel
     print(result.shape)
     return np.array(result)
 
+def opencv_canny(image,threshold1,threshold2):
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Find the edges in the image using canny detector
+    edges = cv2.Canny(gray, threshold1, threshold2)
+    rgbimg = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
+    return rgbimg
+
 def scikit_canny(imgs,height,width,color,sigma):
     print('sigma scikit_canny',sigma)
     imgs_final = []
