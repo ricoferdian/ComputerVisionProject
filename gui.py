@@ -238,6 +238,8 @@ class OperasiCitraDialog(QDialog):
             mainLayout.addWidget(slider2Group)
         elif(jenis_operasi=='Hough Transform Line'):
             layoutSlider1 = QHBoxLayout()
+            layoutSlider2 = QHBoxLayout()
+            layoutSlider3 = QHBoxLayout()
 
             self.setWindowTitle("Atur threshold")
             self.convertslider = QSlider()
@@ -251,7 +253,31 @@ class OperasiCitraDialog(QDialog):
             slider1Group = QGroupBox("Threshold (Min 0 max 500)")
             slider1Group.setLayout(layoutSlider1)
 
+            self.convertslider2 = QSlider()
+            self.convertslider2.setOrientation(Qt.Horizontal)
+            self.convertslider2.setTickPosition(QSlider.TicksBelow)
+            self.convertslider2.setTickInterval(1)
+            self.convertslider2.setMinimum(1)
+            self.convertslider2.setMaximum(255)
+            layoutSlider2.addWidget(self.convertslider2)
+
+            slider2Group = QGroupBox("Panjang Garis Minimum")
+            slider2Group.setLayout(layoutSlider2)
+
+            self.convertslider3 = QSlider()
+            self.convertslider3.setOrientation(Qt.Horizontal)
+            self.convertslider3.setTickPosition(QSlider.TicksBelow)
+            self.convertslider3.setTickInterval(1)
+            self.convertslider3.setMinimum(0)
+            self.convertslider3.setMaximum(500)
+            layoutSlider3.addWidget(self.convertslider3)
+
+            slider3Group = QGroupBox("Jarak Garis Maksimum")
+            slider3Group.setLayout(layoutSlider3)
+
             mainLayout.addWidget(slider1Group)
+            mainLayout.addWidget(slider2Group)
+            mainLayout.addWidget(slider3Group)
         elif(jenis_operasi=='Hough Transform Circle'):
             layoutSlider1 = QHBoxLayout()
             layoutSlider2 = QHBoxLayout()
@@ -429,7 +455,7 @@ class OperasiCitraDialog(QDialog):
         if(self.jenis_operasi=='Gaussian Blur'):
             self.result = [self.convertslider.value(),self.convertslider2.value()]
         elif(self.jenis_operasi=='Hough Transform Line'):
-            self.result = [self.convertslider.value()]
+            self.result = [self.convertslider.value(),self.convertslider2.value(),self.convertslider3.value()]
         elif(self.jenis_operasi=='Hough Transform Circle'):
             self.result = [self.convertslider.value(),self.convertslider2.value(),self.convertslider3.value(),
                            self.convertslider4.value()]
@@ -469,7 +495,7 @@ class MainWindow(QMainWindow):
                             'Atur Brightness','Atur Contrast','Contrast Stretching',
                             'Operasi Negasi','Histogram Equalization','Gaussian Blur',
                             'Filtering Sobel','Deteksi Tepi Canny','Hough Transform Line','Hough Transform Circle',
-                            'Deteksi Tepi Canny Otomatis'
+                            'Hough Transform Circle (Parameterized)','Deteksi Tepi Canny Otomatis'
                             ]
 
         #LAYOUT UTAMA VERTIKAL
@@ -609,24 +635,26 @@ class MainWindow(QMainWindow):
             dlg = OperasiCitraDialog('Hough Transform Line')
             if dlg.exec_():
                 value = dlg.GetValue()
-                imageArray = houghTrans.houghTransformLine(imageArray,value[0])
+                imageArray = houghTrans.houghTransformLine(imageArray,value[0],value[1],value[2])
                 print(value)
                 print("Success!")
             else:
                 print("Cancel!")
                 return
+        elif (selectedOperasi == 'Hough Transform Circle (Parameterized)'):
+            print('Hough Transform Circle (Parameterized)')
+            imageArray = houghTrans.houghTransformCircle(imageArray)
         elif (selectedOperasi == 'Hough Transform Circle'):
             print('Hough Transform Circle')
             dlg = OperasiCitraDialog('Hough Transform Circle')
-            imageArray = houghTrans.houghTransformCircle(imageArray)
-            # if dlg.exec_():
-            #     value = dlg.GetValue()
-            #     imageArray = houghTrans.houghTransformCircle(imageArray,value[0],value[1],value[2],value[3])
-            #     print(value)
-            #     print("Success!")
-            # else:
-            #     print("Cancel!")
-            #     return
+            if dlg.exec_():
+                value = dlg.GetValue()
+                imageArray = houghTrans.houghTransformCircle(imageArray,value[0],value[1],value[2],value[3])
+                print(value)
+                print("Success!")
+            else:
+                print("Cancel!")
+                return
         elif (selectedOperasi == 'Deteksi Tepi Canny'):
             print('Deteksi Tepi Canny')
             dlg = OperasiCitraDialog('Deteksi Tepi Canny')

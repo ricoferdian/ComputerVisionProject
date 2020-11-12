@@ -1,13 +1,13 @@
 import cv2
 import numpy as np
 
-def houghTransformLine(img, max_slider):
+def houghTransformLine(img, max_slider, minLineLength=10, maxLineGap=250):
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # Find the edges in the image using canny detector
     edges = cv2.Canny(gray, 50, 200)
     # Detect points that form a line
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, max_slider, minLineLength=10, maxLineGap=250)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, max_slider, minLineLength=minLineLength, maxLineGap=maxLineGap)
     # Draw lines on the image
     if lines is not None:
         for line in lines:
