@@ -81,12 +81,13 @@ class PlotDistribusiKumulatif(QDialog):
         self.close()
 
 class PlotHistogramDialog(QDialog):
-    def __init__(self, originalImage, histogramTitle, parent=None):
+    def __init__(self, originalImage, histogramTitle, channelImage, parent=None):
         super(PlotHistogramDialog, self).__init__(parent)
         self.result = ""
         mainLayout = QVBoxLayout()
 
         self.height, self.width, self.channel = originalImage.shape
+        self.channel = channelImage
 
         self.originalHist = pg.PlotWidget()
         for i in range(self.channel):
@@ -459,6 +460,7 @@ class MainWindow(QMainWindow):
         wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)
         self.akuisisiImage.setPixmap(QPixmap.fromImage(image).scaled(wlabel,hlabel,Qt.KeepAspectRatio))
         self.akuisisiImageData["data"] = utils.convertQImageToMat(QPixmap.fromImage(image).toImage())
+        self.akuisisiImageData["channel"] = 3
 
     def initUiThread(self):
         self._want_to_close = False
@@ -478,13 +480,10 @@ class MainWindow(QMainWindow):
         self.initColumnCenterGui()
         self.initColumnRightGui()
 
-        columnRight = QVBoxLayout()
-
         #SUB LAYOUT COLUMN RIGHT
         #BELUM DIBUAT. TUNGGU SAMPE DIMINTA BUAT FEATURE EXTRACTION
 
         #JIKA SEMUA SUDAH DIDEFINISIKAN, GABUNGKAN DENGAN MAIN LAYOUT
-        self.mainlayout.addLayout(columnRight)
 
         container = QWidget()
         container.setLayout(self.mainlayout)
@@ -511,11 +510,12 @@ class MainWindow(QMainWindow):
         imageArray = self.akuisisiImageData["data"]
         # imageArray = utils.convertQImageToMat(self.akuisisiImage.pixmap().toImage())
         h, w, ch = imageArray.shape
-
+        self.convertedImageData["channel"] = 3
         print('imageArray',imageArray)
         if(selectedOperasi=='Konversi ke Grayscale'):
             print('AKAN KONVERSI KE Grayscale')
             imageArray = operasiTitik.rgb2Gray(imageArray,h, w, ch)
+            self.convertedImageData["channel"] = 1
         elif(selectedOperasi=='Konversi ke Biner'):
             print('AKAN KONVERSI KE Biner')
             dlg = OperasiCitraDialog('Konversi ke Biner')
@@ -527,6 +527,7 @@ class MainWindow(QMainWindow):
             else:
                 print("Cancel!")
                 return
+            self.convertedImageData["channel"] = 1
         elif(selectedOperasi=='Atur Brightness'):
             print('AKAN Atur Brightness')
             dlg = OperasiCitraDialog('Atur Brightness')
@@ -687,7 +688,7 @@ class MainWindow(QMainWindow):
         columnRight.addLayout(columnRightRow1)
         columnRight.addLayout(columnRightRow2)
 
-        self.mainlayout.addLayout(columnRight)
+        self.mainlayout.addLayout(columnRight, stretch=20)
 
     def initColumnCenterGui(self):
         #COLUMN CENTER
@@ -701,7 +702,7 @@ class MainWindow(QMainWindow):
         columnCenterRow1Col1 = QVBoxLayout()
         self.convertedImage = QLabel(self)
         #data untuk disimpan
-        self.convertedImageData = {"data":np.array([0])}
+        self.convertedImageData = {"data":np.array([0]), "channel":0}
         columnCenterRow1Col1.addWidget(self.convertedImage)
 
         listOperasiTitikGroup = QGroupBox("Citra Hasil")
@@ -763,7 +764,7 @@ class MainWindow(QMainWindow):
         columnCenter.addLayout(columnCenterRow1)
         columnCenter.addLayout(columnCenterRow2)
 
-        self.mainlayout.addLayout(columnCenter)
+        self.mainlayout.addLayout(columnCenter, stretch=40)
 
 
     def initColumnLeftGui(self):
@@ -781,7 +782,7 @@ class MainWindow(QMainWindow):
         columnLeftRow1Col1 = QVBoxLayout()
         akuisisiImageGroup = QGroupBox()
         self.akuisisiImage = QLabel(self)
-        self.akuisisiImageData = {"data":np.array([0])}
+        self.akuisisiImageData = {"data":np.array([0]), "channel":0}
         columnLeftRow1Col1.addWidget(self.akuisisiImage)
 
         listOperasiTitikGroup = QGroupBox("Citra Awal")
@@ -863,22 +864,27 @@ class MainWindow(QMainWindow):
         columnLeft.addLayout(columnLeftRow1)
         columnLeft.addLayout(columnLeftRow2)
 
-        self.mainlayout.addLayout(columnLeft)
+        self.mainlayout.addLayout(columnLeft, stretch=40)
 
     def plotHistogram(self):
         print("PLOT HISTOGRAM 1")
         imageArray = self.akuisisiImageData["data"]
+        channelImage = self.akuisisiImageData["channel"]
+
+        print('imageArray hisy 1',imageArray)
         # imageArray = utils.convertQImageToMat(self.akuisisiImage.pixmap().toImage())
 
-        dlg = PlotHistogramDialog(imageArray, "Citra Akuisisi")
+        dlg = PlotHistogramDialog(imageArray, "Citra Akuisisi", channelImage)
         dlg.exec_()
 
 
     def plotHistogramHasil(self):
         print("PLOT HISTOGRAM 2")
         imageArray = self.convertedImageData["data"]
+        channelImage = self.convertedImageData["channel"]
+        print('channelImage',channelImage)
         # imageArray = utils.convertQImageToMat(self.convertedImage.pixmap().toImage())
-        dlg = PlotHistogramDialog(imageArray, "Citra Hasil")
+        dlg = PlotHistogramDialog(imageArray, "Citra Hasil", channelImage)
         dlg.exec_()
 
 
@@ -1011,6 +1017,7 @@ class MainWindow(QMainWindow):
                 imported_image = PIL.Image.open(path)
                 rgb_image = imported_image.convert('RGB')
                 self.akuisisiImageData["data"] = np.array(rgb_image)
+                self.akuisisiImageData["channel"] = 3
 
                 img = cv2.imread(path)
                 typeFile = imghdr.what(path)
@@ -1073,6 +1080,7 @@ class MainWindow(QMainWindow):
                 imported_image = PIL.Image.open(path)
                 rgb_image = imported_image.convert('RGB')
                 self.convertedImageData["data"] = np.array(rgb_image)
+                self.convertedImageData["channel"] = 3
 
                 img = cv2.imread(path)
                 typeFile = imghdr.what(path)
