@@ -18,6 +18,7 @@ import utils
 import operasiTitikBackend as operasiTitik
 import cannyEdgeDetectionBackend as cannyEdgeDetection
 import houghTransformCv2 as houghTrans
+# import houghTransformBackend as houghTrans
 
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
@@ -468,7 +469,7 @@ class MainWindow(QMainWindow):
                             'Atur Brightness','Atur Contrast','Contrast Stretching',
                             'Operasi Negasi','Histogram Equalization','Gaussian Blur',
                             'Filtering Sobel','Deteksi Tepi Canny','Hough Transform Line','Hough Transform Circle',
-                            # 'Deteksi Tepi Canny Otomatis'
+                            'Deteksi Tepi Canny Otomatis'
                             ]
 
         #LAYOUT UTAMA VERTIKAL

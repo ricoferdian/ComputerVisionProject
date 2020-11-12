@@ -88,7 +88,6 @@ def brighten(img, height, width, color, value):
                     temp[i][j][k] = np.uint8(255)
                 else:
                     temp[i][j][k] = img[i, j, k] + np.uint8(value)
-    print('temp',temp)
     return np.array(temp)
 
 #INPUT : 3 DIMENSI RGB, OUTPUT : 3 DIMENSI RGB
