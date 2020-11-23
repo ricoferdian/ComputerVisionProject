@@ -19,20 +19,22 @@ def houghTransformLine(img, max_slider, minLineLength=10, maxLineGap=250):
             x1, y1, x2, y2 = line[0]
             cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 3)
     # Show result
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    return gray
+    result = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    gray = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+    edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
+    return gray, edges, result
 
-def houghTransformCircle(img, param1=200, param2=10,minRadius=30, maxRadius=40):
+def houghTransformCircle(img, param1=200, param2=10,minRadius=20, maxRadius=35):
     print('p1,p2,min,max',param1,param2,minRadius,maxRadius)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     cv2.imwrite("HASILGRAY.jpg",gray)
     # Blur the image to reduce noise
     img_blur = cv2.medianBlur(gray, 5)
-    img_blur = cv2.Canny(img_blur, 50, 200)
-    cv2.imwrite("HASILCANNY.jpg",img_blur)
+    img_canny = cv2.Canny(img_blur, 50, 200)
+    cv2.imwrite("HASILCANNY.jpg",img_canny)
     # Apply hough transform on the image
-    circles = cv2.HoughCircles(img_blur, cv2.HOUGH_GRADIENT, 1, img.shape[0] / 64, param1=param1, param2=param2, minRadius=minRadius,
+    circles = cv2.HoughCircles(img_canny, cv2.HOUGH_GRADIENT, 1, img.shape[0] / 20, param1=param1, param2=param2, minRadius=minRadius,
                                maxRadius=maxRadius)
     # Draw detected circles
     if circles is not None:
@@ -43,5 +45,7 @@ def houghTransformCircle(img, param1=200, param2=10,minRadius=30, maxRadius=40):
             # Draw inner circle
             cv2.circle(img, (i[0], i[1]), 2, (0, 0, 255), 3)
     # Show result
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    return gray
+    result = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    gray = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+    img_canny = cv2.cvtColor(img_canny, cv2.COLOR_GRAY2RGB)
+    return gray, img_canny, result

@@ -18,7 +18,7 @@ import utils
 import operasiTitikBackend as operasiTitik
 import cannyEdgeDetectionBackend as cannyEdgeDetection
 import houghTransformCv2 as houghTrans
-# import houghTransformBackend as houghTrans
+import houghTransformBackend as houghTransVectorized
 
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
@@ -36,6 +36,30 @@ class Thread(QThread):
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
                 p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
                 self.changePixmap.emit(p)
+
+class PlotStepHough(QDialog):
+    def __init__(self, gray, canny, parent=None):
+        super(PlotStepHough, self).__init__(parent)
+        mainLayout = QHBoxLayout()
+        self.stepOne = QLabel(self)
+        self.stepTwo = QLabel(self)
+
+        h, w, ch = gray.shape
+        bytesPerLine = ch * w
+        convertToQtFormat = QImage(gray.data, w, h, bytesPerLine, QImage.Format_RGB888)
+        wlabel, hlabel = utils.getLeftPanelSize(1200, 800)
+        self.stepOne.setPixmap(QPixmap.fromImage(convertToQtFormat).scaled(wlabel, hlabel, Qt.KeepAspectRatio))
+
+        h, w, ch = canny.shape
+        bytesPerLine = ch * w
+        convertToQtFormat = QImage(canny.data, w, h, bytesPerLine, QImage.Format_RGB888)
+        wlabel, hlabel = utils.getLeftPanelSize(1200, 800)
+        self.stepTwo.setPixmap(QPixmap.fromImage(convertToQtFormat).scaled(wlabel, hlabel, Qt.KeepAspectRatio))
+
+        mainLayout.addWidget(self.stepOne)
+        mainLayout.addWidget(self.stepTwo)
+
+        self.setLayout(mainLayout)
 
 class PlotDistribusiKumulatif(QDialog):
     def __init__(self, originalImage, parent=None):
@@ -555,7 +579,7 @@ class MainWindow(QMainWindow):
         if(selectedOperasi=='Konversi ke Grayscale'):
             print('AKAN KONVERSI KE Grayscale')
             imageArray = operasiTitik.rgb2Gray(imageArray,h, w, ch)
-            self.convertedImageData["channel"] = 1
+            # self.convertedImageData["channel"] = 1
         elif(selectedOperasi=='Konversi ke Biner'):
             print('AKAN KONVERSI KE Biner')
             dlg = OperasiCitraDialog('Konversi ke Biner')
@@ -650,7 +674,9 @@ class MainWindow(QMainWindow):
             dlg = OperasiCitraDialog('Hough Transform Line')
             if dlg.exec_():
                 value = dlg.GetValue()
-                imageArray = houghTrans.houghTransformLine(imageArray,value[0],value[1],value[2])
+                gray, edges, imageArray = houghTrans.houghTransformLine(imageArray,value[0],value[1],value[2])
+                dlg = PlotStepHough(gray, edges)
+                dlg.exec_()
                 print(value)
                 print("Success!")
             else:
@@ -658,13 +684,17 @@ class MainWindow(QMainWindow):
                 return
         elif (selectedOperasi == 'Hough Transform Circle (Parameterized)'):
             print('Hough Transform Circle (Parameterized)')
-            imageArray = houghTrans.houghTransformCircle(imageArray)
+            gray, edges, imageArray = houghTrans.houghTransformCircle(imageArray)
+            dlg = PlotStepHough(gray, edges)
+            dlg.exec_()
         elif (selectedOperasi == 'Hough Transform Circle'):
             print('Hough Transform Circle')
             dlg = OperasiCitraDialog('Hough Transform Circle')
             if dlg.exec_():
                 value = dlg.GetValue()
-                imageArray = houghTrans.houghTransformCircle(imageArray,value[0],value[1],value[2],value[3])
+                gray, edges, imageArray = houghTrans.houghTransformCircle(imageArray,value[0],value[1],value[2],value[3])
+                dlg = PlotStepHough(gray, edges)
+                dlg.exec_()
                 print(value)
                 print("Success!")
             else:
@@ -688,7 +718,9 @@ class MainWindow(QMainWindow):
             else:
                 print("Cancel!")
                 return
-
+        print(h, w, ch)
+        h, w, ch = imageArray.shape
+        print(h, w, ch)
         bytesPerLine = ch * w
         convertToQtFormat = QImage(imageArray.data, w, h, bytesPerLine, QImage.Format_RGB888)
         wlabel, hlabel = utils.getLeftPanelSize(screenWidth, screenHeight)

@@ -1,4 +1,5 @@
 import numpy as np
+from math import *
 
 #INPUT : 3 DIMENSI RGB, OUTPUT : 3 DIMENSI GRAYSCALE
 def rgb2Gray(img, height, width, color):
@@ -9,7 +10,13 @@ def rgb2Gray(img, height, width, color):
             temp[i][j][1] = temp[i][j][0]
             temp[i][j][2] = temp[i][j][0]
             # print('PIXEL ROW ',i,'COL ',j,' | RED:',img[i, j, 0],'GREEN:',img[i, j, 1],'BLUE:',img[i, j, 2])
-    return np.array(temp)
+
+    # temp = flipImage(np.array(temp), height, width, color)
+    temp = np.array(img)
+    print(temp.shape)
+    temp = rotateImage90Left(img, height, width, color)
+    print(temp.shape)
+    return temp
 
 #INPUT : 3 DIMENSI RGB, OUTPUT : 2 DIMENSI GRAYSCALE
 def rgb2Gray2d(img, height, width, color):
@@ -338,3 +345,87 @@ def equalizeResult(img, height, width, color, n):
                 temp[i][j] = np.uint8(n[img[i][j][0]])
     result = np.array(temp)
     return result
+
+def flipImage(img,height,width,color):
+    if color is 3:
+        temp = [[[0 for i in range(color)] for j in range(width)] for k in range(height)]
+
+    for i in range(height):
+        for j in range(width):
+            newI = height-i-1
+            newJ = width-j-1
+            temp[i][j][0] = np.uint8(img[newI][newJ][0])
+            temp[i][j][1] = np.uint8(img[newI][newJ][1])
+            temp[i][j][2] = np.uint8(img[newI][newJ][2])
+
+    result = np.array(temp)
+    return result
+
+def rotateImage90Left(img,height,width,color):
+    if color is 3:
+        temp = [[[0 for i in range(color)] for j in range(height)] for k in range(width)]
+
+    for i in range(height):
+        for j in range(width):
+            newI = j
+            newJ = i
+            temp[newI][newJ][0] = np.uint8(img[i][j][0])
+            temp[newI][newJ][1] = np.uint8(img[i][j][1])
+            temp[newI][newJ][2] = np.uint8(img[i][j][2])
+
+    result = np.array(temp)
+    return result
+
+def rotateImage90Left(img,height,width,color):
+    if color is 3:
+        temp = [[[0 for i in range(color)] for j in range(height)] for k in range(width)]
+
+    for i in range(height):
+        for j in range(width):
+            newI = j
+            newJ = i
+            temp[newI][newJ][0] = np.uint8(img[i][j][0])
+            temp[newI][newJ][1] = np.uint8(img[i][j][1])
+            temp[newI][newJ][2] = np.uint8(img[i][j][2])
+
+    result = np.array(temp)
+    return result
+
+def imageRotation(img, angle):
+    height, width, color = img.shape
+    maxX, maxY = rotateMatrix(height, width, angle)
+    maxX = int(maxX)
+    maxY = int(maxY)
+
+    truncX = False
+    truncY = False
+    if (maxX < 0):
+        truncX = True
+        maxX = abs(maxX)
+    if (maxY < 0):
+        truncY = True
+        maxY = abs(maxY)
+    print(maxX, maxY)
+    temp = [[[0 for i in range(color)] for j in range(maxY)] for k in range(maxX)]
+
+    for i in range(height):
+        for j in range(width):
+            newX, newY = rotateMatrix(i, j, angle)
+            newX = int(newX)
+            newY = int(newY)
+            if (truncX):
+                newX = newX + maxX - 1
+            if (truncY):
+                newY = newY + maxY - 1
+            temp[newX][newY][0] = img[i][j][0]
+            temp[newX][newY][1] = img[i][j][1]
+            temp[newX][newY][2] = img[i][j][2]
+
+    result = np.array(temp)
+    return result
+
+def rotateMatrix(x,y,angle):
+    x1 = (cos(radians(angle))*x)-(sin(radians(angle))*y)
+    y1 = (sin(radians(angle))*x)+(cos(radians(angle))*y)
+    return x1,y1
+

@@ -27,6 +27,7 @@ def sobel_filters(img):
 
     G = np.hypot(Ix, Iy)
     G = G / G.max() * 255
+    print('g',G)
     theta = np.arctan2(Iy, Ix)
     return (G, theta)
 
