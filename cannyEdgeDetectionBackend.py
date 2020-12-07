@@ -4,6 +4,8 @@ from scipy.ndimage.filters import convolve
 import numpy as np
 import matplotlib.pyplot as plt
 
+import cannyEdgeDetectionClass as ced
+
 from skimage import feature
 
 from scipy import misc
@@ -198,12 +200,16 @@ def edgeDetection(imgs, height, width, color, sigma=1, kernel_size=5, weak_pixel
     return np.array(result)
 
 def opencv_canny(image,threshold1,threshold2):
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # Find the edges in the image using canny detector
-    edges = cv2.Canny(gray, threshold1, threshold2)
-    rgbimg = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
-    return rgbimg
+    h, w, c = image.shape
+    detector = ced.cannyEdgeDetector(image,h, w, c, sigma=1.4, kernel_size=5, lowthreshold=0.09, highthreshold=0.17,
+                                     weak_pixel=100)
+    imgs_final = detector.detect()
+    # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # # Find the edges in the image using canny detector
+    # edges = cv2.Canny(gray, threshold1, threshold2)
+    # rgbimg = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
+    return imgs_final
 
 def scikit_canny(imgs,height,width,color,sigma):
     print('sigma scikit_canny',sigma)

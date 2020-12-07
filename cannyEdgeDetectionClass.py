@@ -140,11 +140,11 @@ class cannyEdgeDetector:
             else:
                 image = operasiTitik.getB2D(self.imgs, self.height, self.width, self.color)
             self.img_smoothed = convolve(image, self.gaussian_kernel(self.kernel_size, self.sigma))
-            # self.gradientMat, self.thetaMat = self.sobel_filters(self.img_smoothed)
-            # self.nonMaxImg = self.non_max_suppression(self.gradientMat, self.thetaMat)
-            # self.thresholdImg = self.threshold(self.nonMaxImg)
-            # self.img_final = self.hysteresis(self.thresholdImg)
-            self.imgs_final.append(self.img_smoothed)
+            self.gradientMat, self.thetaMat = self.sobel_filters(self.img_smoothed)
+            self.nonMaxImg = self.non_max_suppression(self.gradientMat, self.thetaMat)
+            self.thresholdImg = self.threshold(self.nonMaxImg)
+            self.img_final = self.hysteresis(self.thresholdImg)
+            self.imgs_final.append(self.img_final)
         if self.color is 3:
             result = operasiTitik.combineRGB2DtoRGB(self.imgs_final[0],self.imgs_final[1],self.imgs_final[2],self.height, self.width)
         else:

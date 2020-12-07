@@ -19,6 +19,8 @@ import operasiTitikBackend as operasiTitik
 import cannyEdgeDetectionBackend as cannyEdgeDetection
 import houghTransformCv2 as houghTrans
 import houghTransformBackend as houghTransVectorized
+# STEGANOGRAFI
+import steganographyBackend as stegano
 
 class Thread(QThread):
     changePixmap = pyqtSignal(QImage)
@@ -162,7 +164,7 @@ class PlotHistogramDialog(QDialog):
         self.close()
 
 class OperasiCitraDialog(QDialog):
-    def __init__(self, jenis_operasi, parent=None):
+    def __init__(self, jenis_operasi,parameter = None, parent=None):
         super(OperasiCitraDialog, self).__init__(parent)
         self.result = ""
         mainLayout = QVBoxLayout()
@@ -468,6 +470,13 @@ class OperasiCitraDialog(QDialog):
             mainLayout.addWidget(slider4Group)
             mainLayout.addWidget(slider5Group)
             mainLayout.addWidget(slider6Group)
+        elif(jenis_operasi=='Encoding Pesan Steganografi'):
+            self.messageEncodingBox = QLineEdit()
+            mainLayout.addWidget(self.messageEncodingBox)
+        elif(jenis_operasi=='Decoding Pesan Steganografi'):
+            print("Parameter passed ke dialog tampil pesan stegano",parameter)
+            self.messageEncodingBox = QLineEdit(parameter)
+            mainLayout.addWidget(self.messageEncodingBox)
 
         buttonLayout = QHBoxLayout()
         self.btnJalankan = QPushButton("OK")
@@ -489,7 +498,7 @@ class OperasiCitraDialog(QDialog):
             self.result = [self.convertslider.value()]
         elif(self.jenis_operasi=='Konversi ke Biner'):
             self.result = [self.convertslider.value()]
-        if(self.jenis_operasi=='Gaussian Blur'):
+        elif(self.jenis_operasi=='Gaussian Blur'):
             self.result = [self.convertslider.value(),self.convertslider2.value()]
         elif(self.jenis_operasi=='Hough Transform Line'):
             self.result = [self.convertslider.value(),self.convertslider2.value(),self.convertslider3.value()]
@@ -498,9 +507,11 @@ class OperasiCitraDialog(QDialog):
                            self.convertslider4.value()]
         elif(self.jenis_operasi=='Deteksi Tepi Canny Opencv'):
             self.result = [self.convertslider.value(),self.convertslider2.value()]
-        if(self.jenis_operasi=='Deteksi Tepi Canny'):
+        elif(self.jenis_operasi=='Deteksi Tepi Canny'):
             self.result = [self.convertslider.value(),self.convertslider2.value(),self.convertslider3.value(),
                            self.convertslider4.value(),self.convertslider5.value(),self.convertslider6.value()]
+        elif (self.jenis_operasi == 'Encoding Pesan Steganografi'):
+            self.result = [self.messageEncodingBox.text()]
         self.done(1)
         return self.result
 
@@ -531,8 +542,8 @@ class MainWindow(QMainWindow):
         self.menuOperasi = ['Konversi ke Grayscale','Konversi ke Biner',
                             'Atur Brightness','Atur Contrast','Contrast Stretching',
                             'Operasi Negasi','Histogram Equalization','Gaussian Blur',
-                            'Filtering Sobel','Deteksi Tepi Canny','Hough Transform Line','Hough Transform Circle',
-                            'Hough Transform Circle (Parameterized)','Deteksi Tepi Canny Opencv'
+                            'Filtering Sobel','Deteksi Tepi Canny','Hough Transform Line','Hough Transform Line (Parameterized)','Hough Transform Circle',
+                            'Hough Transform Circle (Parameterized)','Deteksi Tepi Canny Opencv','Encoding Pesan Steganografi','Decoding Pesan Steganografi'
                             ]
 
         #LAYOUT UTAMA VERTIKAL
@@ -674,7 +685,15 @@ class MainWindow(QMainWindow):
             dlg = OperasiCitraDialog('Hough Transform Line')
             if dlg.exec_():
                 value = dlg.GetValue()
-                gray, edges, imageArray = houghTrans.houghTransformLine(imageArray,value[0],value[1],value[2])
+                gray, edges, imageArray, lines = houghTrans.houghTransformLine(imageArray,value[0],value[1],value[2])
+                if lines is not None:
+                    for index, line in enumerate(lines):
+                        x1, y1, x2, y2 = line[0]
+                        print("\nLine", index)
+                        print("x1 = ", x1)
+                        print("y1 = ", y1)
+                        print("x2 = ", x2)
+                        print("y2 = ", y2)
                 dlg = PlotStepHough(gray, edges)
                 dlg.exec_()
                 print(value)
@@ -682,6 +701,19 @@ class MainWindow(QMainWindow):
             else:
                 print("Cancel!")
                 return
+        elif (selectedOperasi == 'Hough Transform Line (Parameterized)'):
+            print('Hough Transform Circle (Parameterized)')
+            gray, edges, imageArray, lines = houghTrans.houghTransformLine(imageArray)
+            if lines is not None:
+                for index, line in enumerate(lines):
+                    x1, y1, x2, y2 = line[0]
+                    print("\nLine",index)
+                    print("x1 = ",x1)
+                    print("y1 = ",y1)
+                    print("x2 = ",x2)
+                    print("y2 = ",y2)
+            dlg = PlotStepHough(gray, edges)
+            dlg.exec_()
         elif (selectedOperasi == 'Hough Transform Circle (Parameterized)'):
             print('Hough Transform Circle (Parameterized)')
             gray, edges, imageArray = houghTrans.houghTransformCircle(imageArray)
@@ -714,6 +746,27 @@ class MainWindow(QMainWindow):
                                                             lowthreshold=value[4]*0.01,
                                                             highthreshold=value[5]*0.01)
                 print(value)
+                print("Success!")
+            else:
+                print("Cancel!")
+                return
+        elif(selectedOperasi == 'Encoding Pesan Steganografi'):
+            print('Encoding Pesan Steganografi')
+            dlg = OperasiCitraDialog('Encoding Pesan Steganografi')
+            if dlg.exec_():
+                value = dlg.GetValue()
+                print(value[0])
+                imageArray = stegano.encode(imageArray,h, w, ch, value[0])
+                print(value)
+                print("Success!")
+            else:
+                print("Cancel!")
+                return
+        elif(selectedOperasi == 'Decoding Pesan Steganografi'):
+            print('DECODING Pesan Steganografi')
+            pesan = stegano.decode(imageArray,h, w, ch)
+            dlg = OperasiCitraDialog('Decoding Pesan Steganografi',pesan)
+            if dlg.exec_():
                 print("Success!")
             else:
                 print("Cancel!")
